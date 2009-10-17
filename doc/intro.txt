@@ -1,0 +1,322 @@
+<a name="section_intro"/>
+Introduction
+============
+
+LuaGravity is a reactive language that implements the synchronous approach for 
+concurrency.
+It is roughly based on Esterel and FrTime, two synchronous languages, the 
+former having an imperative style, the latter being functional.
+
+LuaGravity is implemented as a set of runtime extensions to the Lua language.
+
+The key concept of LuaGravity is its execution unit, known as *reactor*.
+Reactors are comparable to callbacks of *event-driven programming*, holding the 
+following similarities:
+
+* Reactors run implicitly, always as consequence of a change in the 
+  environment.
+* Reactors follow the synchronous hypothesis, which assumes that their 
+  execution is atomic and conceptually instantaneous.
+
+However, reactors differ from callbacks in the following characteristics:
+
+* Reactors are themselves events, and can be linked to each other so that a 
+  reactor termination triggers its dependent reactors.
+  This eliminates the need to explicitly declare and post events.
+  Conventional events, represented as strings, may still be used when 
+  appropriate.
+* Reactors are allowed to suspend in the middle of their own execution (keeping 
+  local state) to wait for other reactors to terminate.
+  This feature permits sequential execution for reactors, while keeping their 
+  reactive nature.
+
+Besides standard Lua statements, a reactor can perform the following 
+operations:
+
+* Create new reactors.
+* Start and stop reactors.
+* Create and destroy links.
+* Await on conditions.
+* Generate string events.
+
+<a name="section_reactivity"/>
+Reactivity Mechanisms
+=====================
+
+The `link` and `await` primitives are the only reactivity mechanisms of 
+LuaGravity.
+Follows an introductory example illustrating their use:
+
+<img src="ex1.png" width="250" vspace="50" hspace="50" align="right"/>
+
+    rA = luagravity.create(
+        function ()
+            print 'a1'     -- sub-node (1)
+            luagravity.await(rB)
+            print 'a2'     -- sub-node (2)
+        end)
+
+    rB = luagravity.create(
+        function ()
+            print 'b'
+        end)
+
+    luagravity.link('eA', rA)
+
+We define two reactors `rA` and `rB`, linking the string event `'eA'` to `rA`.
+When `eA` is triggered, `rA` executes due to the link between them, printing 
+`'a1'`.
+Then, `rA` awaits the execution of `rB`.
+When `rB` is executed somewhere, it prints `'b'` and awakes `rA`, which now 
+prints `'a2'`.
+
+The call to `await` saves the continuation of the running reactor before 
+suspending it, keeping the local environment and point of suspension to be 
+restored on resume.
+The graph is commented [further](#section_scheduler).
+
+As the example shows, string events or reactors can be used as conditions in 
+links and await calls.
+
+The primitive `post` is used to generate string events:
+
+    luagravity.link('key.A', function(key) print(key..' '..pressed))
+    luagravity.post('key.A')
+    -- yields "key key.A pressed"
+
+Reactors executes implicitly, as consequence of links; or explicitly, as shown 
+[further](#section_calling).
+
+The verbose syntax to create and use reactors can be minimized by using the 
+module [luagravity.meta](meta.html).
+<small>*(The [`create` API](#api_create) is actually more complex.)*</small>
+
+<a name="section_scheduler"/>
+The Reactive Scheduler
+----------------------
+
+In LuaGravity, a program is a dynamic dependency graph of reactors waiting for 
+external changes to react.
+In the graph, nodes are reactors with dependency relations represented by 
+directed edges connecting them. The scheduling policy of reactors is determined 
+only by the dependency graph, leading to what we call a reactive scheduler.
+Starting from an external stimulus, the scheduler traverses the graph running 
+all dependent reactors until it reaches "leaf" reactors.
+We call this process a full propagation chain, which, in accordance to the 
+synchronous hypothesis, takes an infinitesimal time to complete.
+A full propagation chain is also our definition for an instant within the 
+notion of discrete time of reactive languages.
+
+The reactivity primitives are responsible for populating the dependency graph 
+with two kinds of edges:
+
+* Link edges:
+    Created by `link(X,Y)` calls.
+    The edge connects the reactor X (source reactor) to Y (destiny reactor) so 
+    that when the source reactor terminates successfully, the destiny reactor 
+is implicitly triggered.
+* Await edges:
+    Created by `await(X)` calls.
+    The edge connects X (reactor to await) to the continuation of the reactor 
+    being suspended.  Await edges are temporary, as the scheduler removes them 
+as soon as the suspended reactor is awakened.
+
+In the dependency graph for introductory example the sub-nodes 1 and 2 
+represent the code chunks of reactor `rC` separated by the call to `await`.
+
+<a name="section_calling"/>
+Calling Reactors
+----------------
+
+Reactors may be called explicitly from inside other reactors through the 
+primitives `spawn` and `call`.
+
+The `spawn(r)` primitive acts like a fork, instantaneously scheduling the 
+reactor passed as parameter and the continuation of the calling reactor to run 
+concurrently.
+
+Follows an example, with corresponding dependency graph, illustrating the use 
+of `spawn`:
+
+<img src="ex2.png" width="250" vspace="50" hspace="50" align="right"/>
+
+    rA = luagravity.create(
+        function ()
+            print 'a1' -- (A1)
+            luagravity.spawn(rB)
+            print 'a2' -- (A2)
+            luagravity.await(rB)
+            print 'a3' -- (A3)
+        end)
+
+    rB = luagravity.create(
+        function ()
+            print 'b1'      -- (B1)
+            luagravity.await(rC)
+            print 'b2'      -- (B2)
+        end)
+
+    rC = luagravity.create(
+        function ()
+            print 'c1'
+        end)
+
+The execution of reactor `rA` prints 'a1' and spawns the reactor `rB` (chunk 
+*A1*).
+The call to `spawn` immediately schedules `rB` and the continuation of `rA` 
+(chunk *A2*) to execute concurrently.
+The scheduler chooses non-deterministically which one to execute first.
+When chunk *A2* is executed, it prints 'a2' and awaits the termination of `rB`, 
+creating a temporary await edge from `rB` to the last continuation of `rA` 
+(chunk *A3*).
+When `rB` is spawned, it prints 'b1' and awaits `rC`, creating the temporary 
+edge from `rC` to the continuation of `rB` (chunk *B2*).
+The execution of `rC` awakes `rB`, which, in turn, awakes `rA`, and both 
+temporary edges are destroyed.
+
+The `call(r)` primitive schedules the reactor passed as parameter and awaits 
+its termination.
+The callee reactor continues its execution only after the called reactor and 
+all reactions to it terminate.
+The following code shows this behavior with the last `assert` statement:
+
+    local counter = 0
+    luagravity.link(r, function() counter=counter+1 end)
+    luagravity.call(r) -- awaits `r` and the increment to the counter
+    assert(counter == 1)
+
+<a name="section_determinism"/>
+Determinism
+-----------
+
+LuaGravity is single threaded, meaning that any concurrent reactor runs 
+atomically.
+This way, there are no critical regions in programs and, hence, no need for a 
+locking mechanism.
+
+However, the execution order of concurrent reactors is non-deterministic, 
+leading to non-deterministic results.
+In the example below it is not possible to know which spawned reactor runs 
+first:
+
+    a = 0
+    luagravity.spawn(function()
+        a = a + 1
+        print(a)   -- prints 1 or 2
+    end)
+    luagravity.spawn(function()
+        a = a + 1
+        print(a)   -- prints 1 or 2
+    end
+    luagravity.await(0)
+    print(a)       -- prints 2, for sure
+
+In this other example, by the time `reactorA` is called, one cannot be sure if 
+the spawned reactor had the chance to execute and await `reactorA`.
+
+    luagravity.spawn(function()
+        luagravity.await(reactorA)
+        print 'ok!'
+    end
+    luagravity.call(reactorA)
+
+<a name="section_environment"/>
+Environments
+------------
+
+As reactors run as consequence of changes (input events) in the environment, a 
+LuaGravity application must have access to such events.
+
+We try to separate the language itself from the environment in which it will be 
+used.
+This decoupling eases the adaptation of the language to different realms.
+For instance, when programming games, the environment will typically provide 
+input events for key presses and collisions between sprites.
+In a robotics environment, input comes from reading sensors; and so on.
+
+The execution model for LuaGravity applications is similar to event-driven 
+applications---after running an initialization code, the application enters in 
+the *main loop* and becomes event-oriented.
+
+The following example gives an overview of a LuaGravity application:
+
+    local gvt = require 'luagravity'
+    local directfb = require 'luagravity.env.directfb'
+
+    gvt.setEnvironment(directfb)
+
+    gvt.loop(
+        function ()
+            gvt.await('key.press.ESCAPE')
+        end)
+
+First we require the `luagravity` module that provides the language constructs.
+Then we require the `directfb` environment and set it with `setEnvironment` as 
+The function `luagravity.setEnvironment` is used 
+
+The function `loop` returns only when the reactor passed as parameter 
+terminates.
+In the example this will happen after the user presses the escape key.
+
+Another reason to separate the language kernel from the environments is that 
+the language is implemented in pure Lua, while environments usually require a C 
+module to interact with the operating system and, hence, are not portable.
+
+The `directfb` used in the example is a typical desktop environment supporting 
+keyboard and mouse events, and also drawing graphics on screen.
+An environment must be documented to expose which input events (and also output 
+primitives) are available.
+Other examples of Lua libraries that could be integrated with LuaGravity to 
+provide additional environments are the LÖVE and Scrupp game engines, IUP and 
+wxWidgets GUI systems, eLua and pbLua embedded platforms, and also LuaSocket, 
+to mention some.
+We do not discuss here how to *implement* environments, please check the file 
+`env/directfb.lua` in the distribution as an example.
+
+<a name="section_meta"/>
+The Meta Language
+=================
+
+So far LuaGravity looks more like a library than a real language.
+We chose to write the LuaGravity kernel as an API that supports every possible 
+mechanism in the language and to provide another layer extending Lua with the 
+semantics of LuaGravity.
+
+We strongly recommend programmers to use the [`meta` module](meta.html) instead 
+of the raw API.
+
+<a name="section_download"/>
+Download
+========
+
+The current version is 0.5 and can be downloaded (TODO) here.
+
+I also keep a github repository [here](http://github.com/fsantanna/luagravity).
+
+The distribution contains the core language, the meta module and also the 
+DirectFB environment.
+
+To install just extract the tarball to a location in your LUA_PATH.
+
+<a name="section_acknowledgements"/>
+Acknowledgements
+================
+
+This work is the result of my period at PUC-Rio as a MSc student supervised by 
+Prof. Roberto Ierusalimschy.
+
+* The MSc dissertation can be found 
+  [here](http://thesynchronousblog.files.wordpress.com/2009/06/luagravity_msc.pdf).
+* The academic paper presented at SBLP'09 can be found
+  [here](http://thesynchronousblog.files.wordpress.com/2009/08/luagravity_sblp.pdf).
+
+I also maintain a weblog on reactive languages at 
+<http://thesynchronousblog.wordpress.com/>.
+
+Please contact me if you are using LuaGravity.
+Also, feel free to ask me for help on how to implement new environments for the 
+language.
+
+Francisco Sant'Anna
+
+(<img src="gm.png" width="60" align="middle"> francisco.santanna)

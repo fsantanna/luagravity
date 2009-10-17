@@ -1,0 +1,375 @@
+<a name="section_intro"/>
+Introduction
+============
+
+The `meta` module extends Lua with the semantics of LuaGravity.
+With a special syntax, the programmer creates reactors instead of functions and 
+reactive variables instead of conventional Lua variables.
+
+The call to `meta.new` returns a new special table `t` in which the semantic 
+extensions of LuaGravity are applied:
+
+    local t = meta.new()
+    function t.funcA () ... end
+    function t._reactorA () ... end
+    function t.__reactorB () ... gvt.await(...) end
+    t.funcA()
+    t._reactorA()   -- equivalent to gvt.call(t._reactorA)
+    t.__reactorB()  -- equivalent to gvt.call(t.__reactorB)
+
+Any function whose name is prefixed by underscores becomes a reactor.
+For names starting with one underscore, instantaneous reactors are created;
+for names starting with two underscores, reactors that can await are created.
+Also, to call a reactor, the conventional function call syntax can be used.
+
+It is also possible to change the global environment of a function to reflect 
+the semantic extensions:
+
+    APP = meta.global(function ()
+        function funcA () ... end
+        function _reactorA () ... end
+        function __reactorB () ... await(...) end
+        funcA()
+        _reactorA()   -- equivalent to gvt.call(_reactorA)
+        __reactorB()  -- equivalent to gvt.call(__reactorB)
+    end)
+    gvt.loop(APP)
+
+The function environment is also extended with all LuaGravity primitives, such 
+as `await`, `link`, `spawn`, etc.
+
+<a name="section_expressions"/>
+Reactive Expressions
+====================
+
+Reactive expressions are another must of reactive languages.
+The value of a reactive expression is updated whenever one of its operands 
+changes, always reflecting the operation first defined.
+The best way to understand reactive expressions is through a simple example:
+
+    meta.global(function()
+        _b = 1
+        _c = 2
+        _a = _b + _c
+        print(_a())   -- prints 3
+        _b = 5
+        print(_a())   -- prints 7
+    end)
+
+The reactive variable `_a` depends on `_b` and `_c` so that anytime they 
+change, the value of `_a` is automatically updated to reflect the sum.
+
+As reactive variables are represented as objects, to get their actual values 
+the call syntax is used, as in `_a()`.
+
+Reactive expressions are implemented on top of the available reactivity 
+primitives of LuaGravity.
+
+<a name="section_lifting"/>
+Lifting
+-------
+
+When applying functions to reactive in expressions, it is expected that the 
+result become also reactive.
+However, functions and operators in conventional languages like Lua are not 
+prepared to accept reactive parameters.
+It is necessary, then, to modify each of these operations to work reactively, a 
+process known as \emph{lifting}.
+
+LuaGravity provides the `L` to lift functions.
+In the following example, the function `assert` is lifted to xxx:
+
+    _b = 1
+    L(assert)(_b < 10, 'b must be lesser than 10')
+    _b = 10  -- yields 'b must be lesser than 10'
+
+<a name="section_operators"/>
+Operators
+---------
+
+LuaGravity automatically lifts all operators that Lua allows to overload: `+`, 
+`-`, `*`, `/`, `..`, `%`, `^`.
+
+The other operators are available as functions in a `meta.global` environment: 
+
+<table>
+<tr> <th>Lua</th>   <th>LuaGravity</th> <th>Example</th>       </tr>
+<tr> <td> # </td>   <td> LEN </td>      <td> LEN(t)      </td> </tr>
+<tr> <td> == </td>  <td> EQ  </td>      <td> EQ(_a, 1)   </td> </tr>
+<tr> <td> < </td>   <td> LT  </td>      <td> LT(_a, 10)  </td> </tr>
+<tr> <td> <= </td>  <td> LE  </td>      <td> LE(_a, _b)  </td> </tr>
+<tr> <td> > </td>   <td> GT  </td>      <td> GT(a, _a)   </td> </tr>
+<tr> <td> >= </td>  <td> GE  </td>      <td> GE(10, _b)  </td> </tr>
+<tr> <td> not </td> <td> NOT </td>      <td> NOT(_a)     </td> </tr>
+<tr> <td> or </td>  <td> OR  </td>      <td> OR(_a, _b)  </td> </tr>
+<tr> <td> and </td> <td> AND </td>      <td> AND(_a, _b) </td> </tr>
+</table>
+
+<small>*(Note in the previous example that `_b<10` should actually be 
+`LT(_b,10)`)*</small>
+
+<a name="section_conditionals"/>
+Conditionals
+------------
+
+Sometimes it is useful to take actions when a condition is satisfied.
+LuaGravity provides the `cond` operator that can be applied to reactive 
+expressions.
+A `cond` object provides the reactors `_true` and `_false` to be used in links 
+and awaits:
+
+    link(cond(_b)._false, reactorA)  -- reactorA is executed when _b is false
+    await( cond(GT(_a,10))._true )   -- the running reactor awaits _a be greater than 10
+
+<a name="section_calculus"/>
+Integral & Derivative
+---------------------
+
+LuaGravity provides primitives for the integration and derivation (in the sense 
+of calculus) of expressions over the time:
+
+    _s = S(10)
+    _d = D(s)
+    await(10)
+    assert(_s() >= 100 and _s() <= 101)
+    assert(_d() == 10)
+
+The following example defines the position `_p` in terms of the speed `_v`:
+
+    _p = _p0 + S(_v)
+
+<a name="section_cycles"/>
+Cycles
+------
+
+It is possible to have reactive variables depending on themselves.
+
+Suppose the position of an object depends on a speed that, in turn, depends on 
+the position:
+
+    _v   = _pos + 1
+    _pos = S(_v)
+
+This creates a dependency cycle that would run forever.
+
+To break such cycles, LuaGravity provides a `delay` operator that can be 
+applied to expressions:
+
+    _v   = delay(_pos) + 1
+    _pos = S(_v)
+
+<a name="section_oo"/>
+Object Orientation
+==================
+
+Although the colon syntax for object orientation works fine with reactors, 
+primitives like `link` and `await` are not aware of OO.
+To work with objects, the `meta.new` must receive `true` as its first 
+parameter:
+
+    local obj = meta.new(true)
+    function obj:_reactorA (self,...) ... end
+    function obj:_reactorB (self,...) ... end
+    link(obj._reactorA, obj._reactorB)
+    obj:_reactorB()
+    obj._reactorB()
+
+This way, whenever `_reactorB` is called it always gets `obj` as its first 
+parameter, being it from a link, colon syntax, or even normal call syntax.
+
+<a name="section_examples"/>
+Examples
+========
+
+<a name="section_flying"/>
+Flying Rectangles
+-----------------
+
+In this example, we create 15 rectangles that move from the top of the screen 
+towards the bottom.
+The rectangles become bigger and faster as they approach the bottom of the 
+screen.
+
+<center>
+<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/YHFDVVX02MU&hl=en&fs=1&"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/YHFDVVX02MU&hl=en&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object>
+</center>
+
+    -- First we require the needed modules.
+    local gvt      = require 'luagravity'
+    local directfb = require 'luagravity.env.directfb'
+    local meta     = require 'luagravity.meta'
+
+    -- This initializes the directfb and creates the `screen` table that we
+    -- will use.
+    local dfb = directfb.init()
+    dfb:SetCooperativeLevel(directfb.DFSCL_FULLSCREEN)
+    local dsc = {
+        flags = directfb.DSDESC_CAPS;
+        caps  = directfb.DSCAPS_PRIMARY + directfb.DSCAPS_FLIPPING;
+    }
+    local sfc = dfb:CreateSurface(dsc)
+    local dx, dy = sfc:GetSize()
+    local screen = {
+        surface = sfc,
+        width   = dx,
+        height  = dy,
+    }
+
+    -- The `redraw` function draws a black background and iterates over the
+    -- flying rectangles, drawing them.
+    local rects = {}
+    local function redraw ()
+        sfc:SetColor(0, 0, 0, 255)
+        sfc:FillRectangle(0, 0, screen.width, screen.height)
+
+        sfc:SetColor(0, 0, 255, 255)
+        for _, r in ipairs(rects) do
+            sfc:FillRectangle(r._x(), r._y(), r._width(), r._height())
+        end
+
+        sfc:Flip()
+    end
+
+    -- Now we set `directfb` as our environment and call `loop` passing the
+    -- application body.
+    gvt.setEnvironment(directfb)
+    gvt.loop(function ()
+        meta.global()  -- let's use the LuaGravity extensions
+
+        -- This creates the 15 rectangles
+        for i=1, 15
+        do
+            -- Each rectangle will hold reactive variables, hence the need of 
+            -- `meta.new`.
+            local r = meta.new()
+            rects[#rects+1] = r
+
+            -- Position `x` starts in the middle and moves with the speed
+            -- between -20 and +20 pixels per second (`S` is the integration).
+            r._x = screen.width/2 + S(math.random(-20,20))
+
+            -- Position `y` starts on top of screen and moves each time
+            -- faster. Note how `v` depends on `y` which depends on `v`, hence 
+            -- the `delay`.
+            r._y = -10
+            local v = 1 + (delay(r._y)^1.3 / screen.height)
+            r._y = S(math.random(1,15)*v)
+
+            -- The dimensions increase as the rectangles move.
+            local dim = 1 + r._y/5
+            r._width  = dim
+            r._height = dim
+        end
+
+        -- This reactor redraws the screen all the time.
+        spawn(function()
+            while true do
+                await(0)
+                redraw()
+            end
+        end)
+
+        -- After receiving this event, the application terminates.
+        await('key.release.ESCAPE')
+    end)
+
+<a name="section_clockwise"/>
+Clockwise Rectangle
+--------------------
+
+In this example, the user moves a rectangle on screen.
+However the rectangle can only move clockwise, that is, if it is moving right, 
+only the down key will have effect:
+
+<center>
+<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/oh6JlfOqNL0&hl=en&fs=1&"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/oh6JlfOqNL0&hl=en&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object>
+</center>
+
+    -- Same as previous example.
+    local gvt      = require 'luagravity'
+    local meta     = require 'luagravity.meta'
+    local directfb = require 'luagravity.env.directfb'
+
+    -- Same as previous example.
+    local dfb = directfb.init()
+    dfb:SetCooperativeLevel(directfb.DFSCL_FULLSCREEN)
+    local dsc = {
+        flags = directfb.DSDESC_CAPS;
+        caps  = directfb.DSCAPS_PRIMARY + directfb.DSCAPS_FLIPPING;
+    }
+    local sfc = dfb:CreateSurface(dsc)
+    local dx, dy = sfc:GetSize()
+    local screen = {
+        surface = sfc,
+        width   = dx,
+        height  = dy,
+    }
+
+    -- Holds the reference to our rectangle.
+    local r = meta.new()
+          r._x = 100
+          r._y = 100
+          r._width  = 50
+          r._height = 50
+
+    -- Redraws the black background and the rectangle.
+    local function redraw ()
+        sfc:SetColor(0, 0, 0, 255)
+        sfc:FillRectangle(0, 0, screen.width, screen.height)
+        sfc:SetColor(0, 0, 255, 255)
+        sfc:FillRectangle(r._x(), r._y(), r._width(), r._height())
+        sfc:Flip()
+    end
+
+    -- Same as previous example.
+    gvt.setEnvironment(directfb)
+    gvt.loop(function ()
+        meta.global()
+
+        -- Reactor that tracks the rectangle movement.
+        spawn(function()
+            while true do
+                await('key.press.RIGHT')  -- expects RIGHT
+                r._x = r._x() + S(80)     -- makes X move right
+                r._y = r._y()             -- holds on Y
+
+                await('key.press.DOWN')   -- expects DOWN
+                r._x = r._x()             -- holds on X
+                r._y = r._y() + S(80)     -- makes Y move down
+
+                await('key.press.LEFT')   -- expects LEFT
+                r._x = r._x() - S(80)     -- makes X move LEFT
+                r._y = r._y()             -- holds on Y
+
+                await('key.press.UP')     -- expects UP
+                r._x = r._x()             -- holds on X
+                r._y = r._y() - S(80)     -- makes Y move UP
+
+                -- back to await RIGHT
+            end
+        end)
+
+        -- Same as previous example.
+        spawn(function()
+            while true do
+                await(0)
+                redraw()
+            end
+        end)
+
+        -- Same as previous example.
+        await('key.release.ESCAPE')
+    end)
+
+<a name="section_rocks"/>
+Rocks Game
+----------
+
+In this game the user controls a ship that can shoot the meteors and should 
+avoid them.
+The source code can be found in the LuaGravity distribution at 
+`examples/game.lua`.
+
+<center>
+<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/gQSdaUuTSX4&hl=en&fs=1&"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/gQSdaUuTSX4&hl=en&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object>
+</center>

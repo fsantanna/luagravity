@@ -1,0 +1,221 @@
+<a name="section_api"/>
+API
+===
+
+<table border="0" width="95%">
+
+<tr>
+<td><code><big><strong>
+<a href="#api_create">reactor = luagravity.create (name, obj, inst, body)</a>
+</strong></big></code>
+<br/>
+Creates a new reactor from a function body.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_spawn">reactor = luagravity.spawn (reactor, param)</a>
+</strong></big></code>
+<br/>
+Spawns the execution of the given reactor, passing a parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_call">ret = luagravity.call (reactor, param)</a>
+</strong></big></code>
+<br/>
+Executes the reactor passed as parameter and awaits its termination.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_stop">luagravity.stop (reactor)</a>
+</strong></big></code>
+<br/>
+Terminates the execution of the given reactor, cancelling it.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_link">brk = luagravity.link (src, dst)</a>
+</strong></big></code>
+<br/>
+Creates a link between `src` and `dst`.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_await">ret = luagravity.await (r1, r2, ...)</a>
+</strong></big></code>
+<br/>
+Makes the running reactor await the successful termination of any reactor 
+passed as parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_cancel">return luagravity.cancel</a>
+</strong></big></code>
+<br/>
+Terminates the running reactor, cancelling it.
+<br/>
+</tr>
+
+</table>
+
+<hr/>
+
+<a name="api_create"/>
+<big>
+    `reactor = luagravity.create (name, obj, inst, body)`
+</big>
+
+Creates a new reactor from a function body.
+
+The reactor body must follow the signature:
+
+    function ([obj], param) ... end
+
+Parameters:
+
+* `name`: `[string]` Reactor's name (for debugging purposes).
+* `obj`: `[table]` Every time the reactor is called, `obj` is passed as the 
+                   first parameter if existent.
+* `inst`: `[boolean]` If the reactor is instantaneous, that is, if its body 
+                      contains no `await` calls.
+* `body`: `[function]` The actual code to be executed by the reactor.
+
+Returns:
+
+* `ref`: [reactor] A reference to the created reactor.
+
+<small>
+*The `inst` parameter allows an important optimization for reactors that do not 
+await on their bodies. However, for reactors that do await, this parameter must 
+be passed `false`.*
+</small>
+
+<hr/>
+
+<a name="api_spawn"/>
+<big>
+    `reactor = luagravity.spawn (reactor, param)`
+</big>
+
+Spawns the execution of the given reactor, passing a parameter.
+The spawned reactor runs concurrently with the continuation of the running 
+reactor.
+
+Parameters:
+
+* `reactor`: [reactor] Reactor to execute. May also be an anonymous function 
+                       that is automatically transformed into a reactor.
+* `param`: [any] Parameter to pass to the reactor.
+
+Returns:
+
+* `reactor`: [reactor] A reference to the spawned reactor.
+
+<hr/>
+
+<a name="api_call"/>
+<big>
+    `ret = luagravity.call (reactor, param)`
+</big>
+
+Executes the reactor passed as parameter and awaits its termination.
+The callee reactor continues its execution only after the called reactor and 
+all reactions to it terminate.
+
+Parameters:
+
+* `reactor`: [reactor] Reactor to execute.
+* `param`: [any] Parameter to pass to the reactor.
+
+Returns:
+
+* `ret`: [any] The return value of the called reactor.
+
+<hr/>
+
+<a name="api_stop"/>
+<big>
+    `luagravity.stop (reactor)`
+</big>
+
+Terminates the execution of the given (awaiting) reactor, cancelling it.
+
+Reactors linked to (or awaiting) it are not triggered.
+
+Parameters:
+
+* `reactor`: [reactor] Reactor to stop.
+
+Returns:
+
+* *nothing*
+
+<hr/>
+
+<a name="api_link"/>
+<big>
+    `brk = luagravity.link (src, dst)`
+</big>
+
+Creates a link between `src` and `dst`.
+
+A link determines that the termination/post of the reactor/string event `src` 
+triggers the reactor `dst`.
+The returned value of `src` is passed to the body of `dst`.
+[Cancelled](#api_cancel) or [stopped](#api_stop) reactors do not trigger 
+reactors linked to it.
+
+If a source reactor links to several destiny reactors, its termination makes 
+all of them to run concurrently.
+
+Parameters:
+
+* `src`: [reactor|string] Source reactor or string event.
+* `dst`: [reactor] Destiny reactor. May also be an anonymous function that is 
+                   automatically transformed into a reactor.
+
+Returns:
+
+* `f`: [function] A function that, when called, breaks the link.
+
+<hr/>
+
+<a name="api_await"/>
+<big>
+    `ret = luagravity.await (p1, p2, ...)`
+</big>
+
+Makes the running reactor await the successful termination/post of any 
+reactor/string event passed as parameter.
+Further actions in the running reactor are not executed until it is awakened.
+
+A number may also be passed as parameter to make the running reactor await this 
+number of seconds.
+
+The call returns the return value of the reactor responsible for awaking the 
+suspended reactor.
+
+Parameters:
+
+* `...`: [reactors|strings|numbers] Conditions to await.
+
+Returns:
+
+* `ret`: [any] The return value of the satisfied condition.
+
+<hr/>
+
+<a name="api_cancel"/>
+<big>
+    `return luagravity.cancel`
+</big>
+
+Terminates the running reactor, cancelling it.
+
+Reactors linked to (or awaiting) it are not triggered.

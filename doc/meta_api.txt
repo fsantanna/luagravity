@@ -1,0 +1,70 @@
+<a name="section_api"/>
+API
+===
+
+<table border="0" width="95%">
+
+<tr>
+<td><code><big><strong>
+<a href="#api_new">t = meta.new (obj)</a>
+</strong></big></code>
+<br/>
+Creates a new table in which the LuaGravity extensions can be used.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_global">fun = meta.global (fun)</a>
+</strong></big></code>
+<br/>
+Changes the global environment of a function to reflect the semantic extensions 
+of LuaGravity.
+</tr>
+
+</table>
+
+<hr/>
+
+<a name="api_new"/>
+<big>
+    `t = meta.new (obj)`
+</big>
+
+Creates a new table in which the LuaGravity extensions can be used.
+
+Parameters:
+
+* `obj`: `[boolean]` If the returned table should behave as an object.
+
+Returns:
+
+* `t`: [table] A reference to the created table.
+
+If `obj` is true, every reactor defined inside `t` will receive `t` as its 
+first parameter.
+
+<hr/>
+
+<a name="api_global"/>
+<big>
+    `fun = meta.global (fun)`
+</big>
+
+Changes the global environment of a function to reflect the semantic extensions 
+of LuaGravity.
+
+The environment is also extended with the following primitives:
+
+    spawn  call  stop  link  await  cancel
+    delay  cond  L  S  D
+    LEN  EQ  LT  LE  GT  GE  NOT  OR  AND
+
+Parameters:
+
+* `fun`: [function] The function that will have the environment modified.
+                    If no function is given, it is assumed the function that 
+                    called `meta.global`.
+
+Returns:
+
+* `fun`: [function] The same function passed as parameter.
