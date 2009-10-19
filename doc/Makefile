@@ -14,3 +14,6 @@ meta:
 
 meta_api:
 	markdown meta_api.txt > _meta_api.html
+
+release:
+	tar cvzf homepage.tgz ../../luagravity-0.5.tgz ../../ldirectfb-0.1.tgz *

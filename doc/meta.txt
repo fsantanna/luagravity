@@ -45,6 +45,7 @@ Reactive Expressions
 Reactive expressions are another must of reactive languages.
 The value of a reactive expression is updated whenever one of its operands 
 changes, always reflecting the operation first defined.
+
 The best way to understand reactive expressions is through a simple example:
 
     meta.global(function()
@@ -69,28 +70,32 @@ primitives of LuaGravity.
 Lifting
 -------
 
-When applying functions to reactive in expressions, it is expected that the 
-result become also reactive.
+When applying functions to reactive expressions, it is expected that the result 
+become also reactive.
 However, functions and operators in conventional languages like Lua are not 
 prepared to accept reactive parameters.
 It is necessary, then, to modify each of these operations to work reactively, a 
-process known as \emph{lifting}.
+process known as *lifting*.
 
-LuaGravity provides the `L` to lift functions.
-In the following example, the function `assert` is lifted to xxx:
+LuaGravity provides the `L` operator to lift functions.
+In the following example, the function `assert` is lifted and is recalculated 
+whenever its parameters change:
 
     _b = 1
     L(assert)(_b < 10, 'b must be lesser than 10')
+    gvt.await(...)
     _b = 10  -- yields 'b must be lesser than 10'
 
 <a name="section_operators"/>
 Operators
 ---------
 
-LuaGravity automatically lifts all operators that Lua allows to overload: `+`, 
-`-`, `*`, `/`, `..`, `%`, `^`.
+LuaGravity automatically lifts all operators that Lua allows to overload:
 
-The other operators are available as functions in a `meta.global` environment: 
+    +  -  *  /  ..  %  ^
+
+The other operators are available as pre-defined functions in a `meta.global` 
+environment: 
 
 <table>
 <tr> <th>Lua</th>   <th>LuaGravity</th> <th>Example</th>       </tr>
@@ -113,13 +118,11 @@ Conditionals
 ------------
 
 Sometimes it is useful to take actions when a condition is satisfied.
-LuaGravity provides the `cond` operator that can be applied to reactive 
-expressions.
-A `cond` object provides the reactors `_true` and `_false` to be used in links 
-and awaits:
+LuaGravity provides the `cond` and `notcond` operator that can be applied to 
+reactive expressions and used as conditions in `link` and `await` calls:
 
-    link(cond(_b)._false, reactorA)  -- reactorA is executed when _b is false
-    await( cond(GT(_a,10))._true )   -- the running reactor awaits _a be greater than 10
+    link(notcond(_b), reactorA)  -- reactorA is executed when _b is false
+    await( cond(GT(_a,10)) )     -- the running reactor awaits _a be greater than 10
 
 <a name="section_calculus"/>
 Integral & Derivative
@@ -150,8 +153,8 @@ the position:
     _v   = _pos + 1
     _pos = S(_v)
 
-This creates a dependency cycle that would run forever, freezing the 
-application.
+This creates a dependency cycle that, when started, would run forever, freezing 
+the application.
 
 To break such cycles, LuaGravity provides a `delay` operator that can be 
 applied to expressions:
@@ -163,10 +166,10 @@ applied to expressions:
 Object Orientation
 ==================
 
-Although the colon syntax for object orientation works fine with reactors, 
-primitives like `link` and `await` are not aware of OO.
-To work with objects, the `meta.new` must receive `true` as its first 
-parameter:
+Although the colon syntax for calling methods in object orientation works fine 
+with reactors, primitives like `link` and `await` are not aware of OO.
+To work with objects, the `meta.new` constructor must receive `true` as its 
+first parameter:
 
     local obj = meta.new(true)
     function obj:_reactorA (self,...) ... end
@@ -196,17 +199,17 @@ screen.
 </center>
 
     -- First we require the needed modules.
-    local gvt      = require 'luagravity'
-    local directfb = require 'luagravity.env.directfb'
-    local meta     = require 'luagravity.meta'
+    local gvt       = require 'luagravity'
+    local ldirectfb = require 'luagravity.env.ldirectfb'
+    local meta      = require 'luagravity.meta'
 
-    -- This initializes the directfb and creates the `screen` table that we
+    -- This initializes ldirectfb and creates the `screen` table that we
     -- will use.
-    local dfb = directfb.init()
-    dfb:SetCooperativeLevel(directfb.DFSCL_FULLSCREEN)
+    local dfb = ldirectfb.init()
+    dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
     local dsc = {
-        flags = directfb.DSDESC_CAPS;
-        caps  = directfb.DSCAPS_PRIMARY + directfb.DSCAPS_FLIPPING;
+        flags = ldirectfb.DSDESC_CAPS;
+        caps  = ldirectfb.DSCAPS_PRIMARY + ldirectfb.DSCAPS_FLIPPING;
     }
     local sfc = dfb:CreateSurface(dsc)
     local dx, dy = sfc:GetSize()
@@ -231,9 +234,9 @@ screen.
         sfc:Flip()
     end
 
-    -- Now we set `directfb` as our environment and call `loop` passing the
+    -- Now we set `ldirectfb` as our environment and call `loop` passing the
     -- application body.
-    gvt.setEnvironment(directfb)
+    gvt.setEnvironment(ldirectfb)
     gvt.loop(function ()
         meta.global()  -- let's use the LuaGravity extensions
 
@@ -287,16 +290,16 @@ only the down key will have effect:
 </center>
 
     -- Same as previous example.
-    local gvt      = require 'luagravity'
-    local meta     = require 'luagravity.meta'
-    local directfb = require 'luagravity.env.directfb'
+    local gvt       = require 'luagravity'
+    local meta      = require 'luagravity.meta'
+    local ldirectfb = require 'luagravity.env.ldirectfb'
 
     -- Same as previous example.
-    local dfb = directfb.init()
-    dfb:SetCooperativeLevel(directfb.DFSCL_FULLSCREEN)
+    local dfb = ldirectfb.init()
+    dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
     local dsc = {
-        flags = directfb.DSDESC_CAPS;
-        caps  = directfb.DSCAPS_PRIMARY + directfb.DSCAPS_FLIPPING;
+        flags = ldirectfb.DSDESC_CAPS;
+        caps  = ldirectfb.DSCAPS_PRIMARY + ldirectfb.DSCAPS_FLIPPING;
     }
     local sfc = dfb:CreateSurface(dsc)
     local dx, dy = sfc:GetSize()
@@ -323,7 +326,7 @@ only the down key will have effect:
     end
 
     -- Same as previous example.
-    gvt.setEnvironment(directfb)
+    gvt.setEnvironment(ldirectfb)
     gvt.loop(function ()
         meta.global()
 

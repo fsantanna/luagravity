@@ -1,3 +1,9 @@
+--[[
+-- TODO:
+-- * Rewrite the debugging system.
+-- * Rewrite the topological order algorithm.
+--]]
+
 local _G = _G
 
 local co_running, co_create, co_resume, co_yield, co_status =
@@ -189,7 +195,6 @@ updateHeight = function (rsrc, rdst, edgeType)
 end
 
 addEdge = function (rsrc, rdst, edgeType)
-    -- TODO: function->reactor: facilita o propagate tb
     assert((type(rsrc) == 'string') or is(rsrc))
     rdst = check_create(rdst, nil, nil, true)
     assert(edgeType)
@@ -267,7 +272,7 @@ end
 
 mt_reactor = {}
 cancel = {}
-dt = 0          -- TODO: feio
+dt = 0          -- TODO: ugly
 
 function stop (reactor)
     assert(reactor.state == 'awaiting', reactor.state)
@@ -300,7 +305,7 @@ function call (rdst, param, ...)
     if rdst.zero then
         ret = trigger('start', rdst, param)
     else
-        -- TODO: alguem na pilha tem que ser `not zero`
+        -- TODO: assert if there is a delayed reactor in the stack
         schedule('start', rdst, param)
         ret = await(rdst)
     end
@@ -381,11 +386,8 @@ function loop (app, param, zero)
     run()
     while app.state ~= 'ready' do
         local evt, param = ENV.nextEvent()
-        if type(evt) == 'string' then
+        if evt then
             post(evt, param)
-        else
-            schedule('start', evt, param)
-            run()
         end
     end
 end
@@ -393,7 +395,7 @@ end
 function setEnvironment (env)
     ENV = env
 end
-function environment (env)
+function environment (env)  -- TODO: substitute setEnv?
     if env then
         ENV = env
     end

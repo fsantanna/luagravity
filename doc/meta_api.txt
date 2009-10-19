@@ -34,7 +34,8 @@ Creates a new table in which the LuaGravity extensions can be used.
 
 Parameters:
 
-* `obj`: `[boolean]` If the returned table should behave as an object.
+* `obj`: `[boolean]` Whether the returned table should behave as an object or 
+                     not.
 
 Returns:
 

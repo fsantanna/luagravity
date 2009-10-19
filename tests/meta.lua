@@ -162,6 +162,17 @@ gvt.loop(meta.global(
         assert(_s() >= 50 and _s() <= 51)
         assert(_d() == 10)
 
+        -- COND
+ 
+        local lt = expr.lift(function(a,b) return a < b end)
+        local x = false
+        local s = S(1)
+        gvt.spawn(function()
+            gvt.await(0.5)
+            x = true
+        end)
+        gvt.await(cond(lt(1,s)))
+        assert(x)
     end))
 
 print '===> OK'

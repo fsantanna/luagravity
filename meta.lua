@@ -42,6 +42,13 @@ local mt_t = {
 	end,
 }
 
+local cond = function (e)
+    return expr.condition(e)._true
+end
+local notcond = function (e)
+    return expr.condition(e)._false
+end
+
 function global (f)
     local t = new(false)
 
@@ -53,20 +60,21 @@ function global (f)
     t.await  = gvt.await
     t.cancel = gvt.cancel
 
-    t.delay = expr.delay
-    t.cond  = expr.condition
-    t.L     = expr.lift
-    t.S     = expr.integral
-    t.D     = expr.derivative
-	t.LEN   = expr.lift(function(a) return a and #a end);
-	t.EQ    = expr.lift(function(a, b) return a and b and a == b end);
-	t.LT    = expr.lift(function(a, b) return a and b and  a < b end);
-	t.LE    = expr.lift(function(a, b) return a and b and a <= b end);
-	t.GT    = expr.lift(function(a, b) return a and b and  a > b end);
-	t.GE    = expr.lift(function(a, b) return a and b and a >= b end);
-	t.NOT   = expr.lift(function(a) return not a end);
-	t.OR    = expr.lift(function(a, b) return a or b end);
-	t.AND   = expr.lift(function(a, b) return a and b end);
+    t.delay   = expr.delay
+    t.cond    = cond
+    t.notcond = notcond
+    t.L       = expr.lift
+    t.S       = expr.integral
+    t.D       = expr.derivative
+	t.LEN     = expr.lift(function(a) return a and #a end);
+	t.EQ      = expr.lift(function(a, b) return a and b and a == b end);
+	t.LT      = expr.lift(function(a, b) return a and b and  a < b end);
+	t.LE      = expr.lift(function(a, b) return a and b and a <= b end);
+	t.GT      = expr.lift(function(a, b) return a and b and  a > b end);
+	t.GE      = expr.lift(function(a, b) return a and b and a >= b end);
+	t.NOT     = expr.lift(function(a) return not a end);
+	t.OR      = expr.lift(function(a, b) return a or b end);
+	t.AND     = expr.lift(function(a, b) return a and b end);
 
     if f then
         return setfenv(f, t)

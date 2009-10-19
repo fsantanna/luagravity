@@ -57,7 +57,7 @@ APP = meta.global(function()
 		    sat._x = -sat._width()
             await(random(10))
 		    sat._x = S(50)
-            await(cond._true)
+            await(cond)
         end
     end)
 
@@ -106,7 +106,7 @@ APP = meta.global(function()
 
             BULS[bul] = true
             await(
-                cond(LT(bul._y+bul._height, 0))._true,
+                cond(LT(bul._y+bul._height, 0)),
                 bul._hit
             )
             BULS[bul] = nil

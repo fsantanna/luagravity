@@ -4,8 +4,8 @@ Introduction
 
 LuaGravity is a reactive language that implements the synchronous approach for 
 concurrency.
-It is roughly based on Esterel and FrTime, two synchronous languages, the 
-former having an imperative style, the latter being functional.
+It is roughly based on Esterel and FrTime, two synchronous reactive languages, 
+the former having an imperative style, the latter being functional.
 
 LuaGravity is implemented as a set of runtime extensions to the Lua language.
 
@@ -13,7 +13,7 @@ The key concept of LuaGravity is its execution unit, known as *reactor*.
 Reactors are comparable to callbacks of *event-driven programming*, holding the 
 following similarities:
 
-* Reactors run implicitly, always as consequence of a change in the 
+* Reactors run implicitly, always as a consequence of a change in the 
   environment.
 * Reactors follow the synchronous hypothesis, which assumes that their 
   execution is atomic and conceptually instantaneous.
@@ -23,9 +23,9 @@ However, reactors differ from callbacks in the following characteristics:
 * Reactors are themselves events, and can be linked to each other so that a 
   reactor termination triggers its dependent reactors.
   This eliminates the need to explicitly declare and post events.
-  Conventional events, represented as strings, may still be used when 
+  Conventional events, represented as strings, may still be used, when 
   appropriate.
-* Reactors are allowed to suspend in the middle of their own execution (keeping 
+* Reactors are allowed to suspend in the middle of their execution (keeping 
   local state) to wait for other reactors to terminate.
   This feature permits sequential execution for reactors, while keeping their 
   reactive nature.
@@ -35,7 +35,7 @@ operations:
 
 * Create new reactors.
 * Start and stop reactors.
-* Create and destroy links.
+* Create and destroy links between reactors.
 * Await on conditions.
 * Generate string events.
 
@@ -43,8 +43,9 @@ operations:
 Reactivity Mechanisms
 =====================
 
-The `link` and `await` primitives are the only reactivity mechanisms of 
+The `link` and `await` primitives are the supported reactivity mechanisms of 
 LuaGravity.
+
 Follows an introductory example illustrating their use:
 
 <img src="ex1.png" width="250" vspace="50" hspace="50" align="right"/>
@@ -64,15 +65,15 @@ Follows an introductory example illustrating their use:
     luagravity.link('eA', rA)
 
 We define two reactors `rA` and `rB`, linking the string event `'eA'` to `rA`.
-When `eA` is triggered, `rA` executes due to the link between them, printing 
-`'a1'`.
+This way, `rA` executes and prints `'a1'` whenever `'eA'` is triggered, due to 
+the link between them.
 Then, `rA` awaits the execution of `rB`.
 When `rB` is executed somewhere, it prints `'b'` and awakes `rA`, which now 
 prints `'a2'`.
 
 The call to `await` saves the continuation of the running reactor before 
-suspending it, keeping the local environment and point of suspension to be 
-restored on resume.
+suspending it, keeping the locals and point of suspension to be restored on 
+resume.
 The graph is commented [further](#section_scheduler).
 
 As the example shows, string events or reactors can be used as conditions in 
@@ -82,7 +83,7 @@ The primitive `post` is used to generate string events:
 
     luagravity.link('key.A', function(key) print(key..' '..pressed))
     luagravity.post('key.A')
-    -- yields "key key.A pressed"
+    -- yields "key.A pressed"
 
 Reactors executes implicitly, as consequence of links; or explicitly, as shown 
 [further](#section_calling).
@@ -98,17 +99,20 @@ The Reactive Scheduler
 In LuaGravity, a program is a dynamic dependency graph of reactors waiting for 
 external changes to react.
 In the graph, nodes are reactors with dependency relations represented by 
-directed edges connecting them. The scheduling policy of reactors is determined 
-only by the dependency graph, leading to what we call a reactive scheduler.
+directed edges connecting them.
+
+The scheduling policy of reactors is determined only by the dependency graph, 
+leading to what we call a reactive scheduler.
+
 Starting from an external stimulus, the scheduler traverses the graph running 
 all dependent reactors until it reaches "leaf" reactors.
 We call this process a full propagation chain, which, in accordance to the 
 synchronous hypothesis, takes an infinitesimal time to complete.
 A full propagation chain is also our definition for an instant within the 
-notion of discrete time of reactive languages.
+notion of discrete time of synchronous languages.
 
-The reactivity primitives are responsible for populating the dependency graph 
-with two kinds of edges:
+The two reactivity primitives are responsible for populating the dependency 
+graph with respective kinds of edges:
 
 * Link edges:
     Created by `link(X,Y)` calls.
@@ -120,6 +124,8 @@ is implicitly triggered.
     The edge connects X (reactor to await) to the continuation of the reactor 
     being suspended.  Await edges are temporary, as the scheduler removes them 
 as soon as the suspended reactor is awakened.
+
+In both cases `X` can also be string events.
 
 In the dependency graph for introductory example the sub-nodes 1 and 2 
 represent the code chunks of reactor `rC` separated by the call to `await`.
@@ -186,8 +192,8 @@ The following code shows this behavior with the last `assert` statement:
     assert(counter == 1)
 
 <a name="section_determinism"/>
-Determinism
------------
+(Non)Determinism
+-----------------
 
 LuaGravity is single threaded, meaning that any concurrent reactor runs 
 atomically.
@@ -224,8 +230,8 @@ the spawned reactor had the chance to execute and await `reactorA`.
 Environments
 ------------
 
-As reactors run as consequence of changes (input events) in the environment, a 
-LuaGravity application must have access to such events.
+As reactors run as consequence of changes (input events) in the environment,
+LuaGravity applications must have access to such events.
 
 We try to separate the language itself from the environment in which it will be 
 used.
@@ -241,9 +247,9 @@ the *main loop* and becomes event-oriented.
 The following example gives an overview of a LuaGravity application:
 
     local gvt = require 'luagravity'
-    local directfb = require 'luagravity.env.directfb'
+    local ldirectfb = require 'luagravity.env.ldirectfb'
 
-    gvt.setEnvironment(directfb)
+    gvt.setEnvironment(ldirectfb)
 
     gvt.loop(
         function ()
@@ -251,22 +257,22 @@ The following example gives an overview of a LuaGravity application:
         end)
 
 First we require the `luagravity` module that provides the language constructs.
-Then we require the `directfb` environment and set it with `setEnvironment` as 
-The function `luagravity.setEnvironment` is used 
+Then we require `ldirectfb` and set it with `setEnvironment` as the environment 
+for the application.
 
-The function `loop` returns only when the reactor passed as parameter 
+The call to `loop` returns only when the reactor passed as parameter 
 terminates.
 In the example this will happen after the user presses the escape key.
 
-Another reason to separate the language kernel from the environments is that 
-the language is implemented in pure Lua, while environments usually require a C 
+Another reason to separate the language kernel from environments is that the 
+language is implemented in pure Lua, while environments usually require a C 
 module to interact with the operating system and, hence, are not portable.
 As a general rule, environments take advantage of existing library bindings to 
 Lua and are just a layer connecting Lua APIs to what LuaGravity expects.
 
 
-The `directfb` used in the example is a typical desktop environment supporting 
-keyboard and mouse events, and also drawing graphics on screen.
+The `ldirectfb` library used in the example is a typical desktop environment 
+supporting keyboard and mouse events, and also drawing graphics on screen.
 An environment must be documented to expose which input events (and also output 
 primitives) are available.
 
@@ -276,16 +282,19 @@ wxWidgets GUI systems, eLua and pbLua embedded platforms, and also LuaSocket,
 to mention some.
 
 We do not discuss here how to *implement* environments, please check the file 
-`env/directfb.lua` in the distribution as an example.
+`env/ldirectfb.lua` in the distribution as an example.
 
 <a name="section_meta"/>
 The Meta Language
 =================
 
-So far LuaGravity looks more like a library than a real language.
-We chose to write the LuaGravity kernel as an API that supports every possible 
-mechanism in the language and to provide another layer extending Lua with the 
-semantics of LuaGravity.
+So far LuaGravity looks more like a library than as a real language.
+
+We chose to write the LuaGravity kernel as an API supporting every possible 
+mechanism in the language.
+Above it, we provide a layer extending Lua with the semantics of LuaGravity.
+This approach follows the usual idea in the Lua world of separating *mechanism* 
+from *policy*.
 
 We strongly recommend programmers to use the [`meta` module](meta.html) instead 
 of the raw API.
@@ -307,6 +316,7 @@ You need also the Lua binding to DirectFB that can be downloaded
 [here](ldirectfb-0.1.tgz):
 
     # tar xvzf ldirectfb-0.1.tgz
+    # cd lidirectfb-0.1/
     # make
     # cp ldirectfb.so /somewhere_in_lua_path
 

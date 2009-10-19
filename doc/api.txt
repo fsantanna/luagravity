@@ -17,7 +17,7 @@ Creates a new reactor from a function body.
 <a href="#api_spawn">reactor = luagravity.spawn (reactor, param)</a>
 </strong></big></code>
 <br/>
-Spawns the execution of the given reactor, passing a parameter.
+Spawns the execution of the given reactor, passing `param` to it.
 </tr>
 
 <tr>
@@ -25,7 +25,7 @@ Spawns the execution of the given reactor, passing a parameter.
 <a href="#api_call">ret = luagravity.call (reactor, param)</a>
 </strong></big></code>
 <br/>
-Executes the reactor passed as parameter and awaits its termination.
+Executes the given reactor passing `param` to it and awaits its termination.
 </tr>
 
 <tr>
@@ -57,8 +57,7 @@ Breaks the link between `src` and `dst`.
 <a href="#api_await">ret = luagravity.await (r1, r2, ...)</a>
 </strong></big></code>
 <br/>
-Makes the running reactor await the successful termination of any reactor 
-passed as parameter.
+Makes the running reactor await for any condition passed as parameter.
 </tr>
 
 <tr>
@@ -88,10 +87,10 @@ The reactor body must follow the signature:
 Parameters:
 
 * `name`: `[string]` Reactor's name (for debugging purposes).
-* `obj`: `[table]` Every time the reactor is called, `obj` is passed as the 
-                   first parameter if existent.
-* `inst`: `[boolean]` If the reactor is instantaneous, that is, if its body 
-                      contains no `await` calls.
+* `obj`: `[table]` If given, every time the reactor is called it receives `obj` 
+                   as the first parameter.
+* `inst`: `[boolean]` Sets whether the reactor is instantaneous, that is, if 
+                      its body contains no `await` calls.
 * `body`: `[function]` The actual code to be executed by the reactor.
 
 Returns:
@@ -111,7 +110,7 @@ be passed `false`.*
     `reactor = luagravity.spawn (reactor, param)`
 </big>
 
-Spawns the execution of the given reactor, passing a parameter.
+Spawns the execution of the given reactor, passing `param` to it.
 The spawned reactor runs concurrently with the continuation of the running 
 reactor.
 
@@ -132,7 +131,7 @@ Returns:
     `ret = luagravity.call (reactor, param)`
 </big>
 
-Executes the reactor passed as parameter and awaits its termination.
+Executes the given reactor passing `param` to it and awaits its termination.
 The callee reactor continues its execution only after the called reactor and 
 all reactions to it terminate.
 
@@ -217,10 +216,11 @@ Returns:
     `ret = luagravity.await (p1, p2, ...)`
 </big>
 
-Makes the running reactor await the successful termination/post of any 
-reactor/string event passed as parameter.
+Makes the running reactor await for any condition passed as parameter.
 Further actions in the running reactor are not executed until it is awakened.
 
+Conditions might be the termination of reactors or [posting](#api_post) of 
+string events.
 A number may also be passed as parameter to make the running reactor await this 
 number of seconds.
 
