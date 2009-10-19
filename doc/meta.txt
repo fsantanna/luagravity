@@ -139,8 +139,8 @@ The following example defines the position `_p` in terms of the speed `_v`:
     _p = _p0 + S(_v)
 
 <a name="section_cycles"/>
-Cycles
-------
+Causality Cycles
+----------------
 
 It is possible to have reactive variables depending on themselves.
 
@@ -150,7 +150,8 @@ the position:
     _v   = _pos + 1
     _pos = S(_v)
 
-This creates a dependency cycle that would run forever.
+This creates a dependency cycle that would run forever, freezing the 
+application.
 
 To break such cycles, LuaGravity provides a `delay` operator that can be 
 applied to expressions:

@@ -1,6 +1,6 @@
 local gvt = require 'luagravity'
 local expr = require 'luagravity.expr'
-local directfb = require 'luagravity.env.directfb'
+local ldirectfb = require 'luagravity.env.ldirectfb'
 
 local fnear = function (cur, exp)
 	return assert((cur >= exp*0.90) and (cur <= exp*1.10), cur)
@@ -17,7 +17,7 @@ local flt = function (v1, v2)
 end
 local llt = expr.lift(flt)
 
-gvt.setEnvironment(directfb)
+gvt.setEnvironment(ldirectfb)
 gvt.loop(
     function ()
         local v1 = expr.new(1)
@@ -38,12 +38,12 @@ gvt.loop(
         local b = expr.new(0)
         gvt.link(b._set, function () tot = tot+1 end)
         assert(tot == 1)
-        local clr = gvt.link(a._set, b._set)
+        gvt.link(a._set, b._set)
         gvt.call(a._set, 3)
         gvt.call(a._set, 3)  -- CANCEL
         assert(tot == 3, tot)
         assert((a.value==3) and (b.value==3))
-        clr()
+        gvt.unlink(a._set, b._set)
         gvt.call(a._set, 4)
         assert(tot == 4)
         assert((a.value==4) and (b.value==3))
@@ -101,6 +101,9 @@ gvt.loop(
         assert(v5.value == v4.value and v6.value == 7)
         gvt.call(v1._set, 10)
         assert(v5.value == v4.value and v6.value == 12)
+        v6:attr(10)
+        gvt.call(v5._set, 1)
+        assert(v5.value==1 and v6.value==10)
 
         -- INTEGRAL / DERIVATIVE
 
@@ -138,6 +141,17 @@ gvt.loop(
         assert(d.value == 2)
         assert(b.value == 2)
 
+        -- COND
+ 
+        local lt = expr.lift(function(a,b) return a < b end)
+        local x = false
+        local s = expr.integral(1)
+        gvt.spawn(function()
+            gvt.await(0.5)
+            x = true
+        end)
+        gvt.await(expr.condition(lt(1,s))._true)
+        assert(x)
     end)
 
 print '===> OK'

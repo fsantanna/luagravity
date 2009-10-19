@@ -49,6 +49,7 @@ function global (f)
     t.call   = gvt.call
     t.stop   = gvt.stop
     t.link   = gvt.link
+    t.unlink = gvt.unlink
     t.await  = gvt.await
     t.cancel = gvt.cancel
 

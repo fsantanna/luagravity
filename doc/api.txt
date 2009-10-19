@@ -38,10 +38,18 @@ Terminates the execution of the given reactor, cancelling it.
 
 <tr>
 <td><code><big><strong>
-<a href="#api_link">brk = luagravity.link (src, dst)</a>
+<a href="#api_link">luagravity.link (src, dst)</a>
 </strong></big></code>
 <br/>
 Creates a link between `src` and `dst`.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_unlink">luagravity.unlink (src, dst)</a>
+</strong></big></code>
+<br/>
+Breaks the link between `src` and `dst`.
 </tr>
 
 <tr>
@@ -160,7 +168,7 @@ Returns:
 
 <a name="api_link"/>
 <big>
-    `brk = luagravity.link (src, dst)`
+    `luagravity.link (src, dst)`
 </big>
 
 Creates a link between `src` and `dst`.
@@ -182,7 +190,25 @@ Parameters:
 
 Returns:
 
-* `f`: [function] A function that, when called, breaks the link.
+* *nothing*
+
+<hr/>
+
+<a name="api_unlink"/>
+<big>
+    `luagravity.unlink (src, dst)`
+</big>
+
+Breaks the link between `src` and `dst`.
+
+Parameters:
+
+* `src`: [reactor|string] Source reactor or string event.
+* `dst`: [reactor] Destiny reactor.
+
+Returns:
+
+* *nothing*
 
 <hr/>
 

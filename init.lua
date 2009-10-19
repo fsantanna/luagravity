@@ -1,13 +1,3 @@
---[[
-
-- testar booleanos
-
-- LABLUA
-
--- Limitations:
--- * await(0) fazem integrais rodarem
---]]
-
 local _G = _G
 
 local co_running, co_create, co_resume, co_yield, co_status =
@@ -213,20 +203,24 @@ addEdge = function (rsrc, rdst, edgeType)
     end
     assert(not edges[rdst]) -- TODO: never tested!
 
-    -- function to break the link
-    local removed = false
-	local brk = function()
-	    assert(not removed, 'already removed')
-        removed = true
-        edges[rdst] = nil
-        edges, rsrc, rdst = nil, nil, nil
-	end
-
     -- create the link
     edges[rdst] = edgeType
     updateHeight(rsrc, rdst, edgeType)
 
     return brk
+end
+
+remEdge = function (rsrc, rdst, edgeType)
+    local edges
+    if type(rsrc) == 'string' then
+        edges = STRINGS[rsrc] or {}
+        STRINGS[rsrc] = edges
+    else
+        edges = rsrc.edges
+    end
+    local tp = edges[rdst]
+    assert(tp and (tp == edgeType)) -- TODO: never tested!
+    edges[rdst] = nil
 end
 
 createTimer = function (time, rnow)
@@ -318,6 +312,10 @@ function link (rsrc, rdst)
     return addEdge(rsrc, rdst, 'link')
 end
 
+function unlink (rsrc, rdst)
+    return remEdge(rsrc, rdst, 'link')
+end
+
 function await (...)
     local rnow = STACK[#STACK]
     assert(not rnow.zero, rnow.name)
@@ -336,17 +334,18 @@ function await (...)
 
         else  -- reactor
             assert((type(v)=='string') or is(v))--, TRACE())
-            t[i] = addEdge(v, rnow, 'await')
+            t[i] = v
+            addEdge(v, rnow, 'await')
         end
     end
 
     -- remove links/timers after resume
     rnow.clearAwaiting = function ()
         for i, v in ipairs(t) do
-            if type(v) == 'table' then
-                v.dead = true  -- timer
+            if (type(v)=='string') or is(v) then
+                remEdge(v, rnow, 'await')
             else
-                v()            -- link
+                v.dead = true  -- timer
             end
         end
     end

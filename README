@@ -1,0 +1,4 @@
+LuaGravity is a reactive language that implements the synchronous approach for 
+concurrency.
+It is roughly based on Esterel and FrTime, two synchronous languages, the 
+former having an imperative style, the latter being functional.

@@ -1,9 +1,9 @@
 -- Testing gvt.call
 
 local gvt = require 'luagravity'
-local directfb = require 'luagravity.env.directfb'
+local ldirectfb = require 'luagravity.env.ldirectfb'
 
-gvt.setEnvironment(directfb)
+gvt.setEnvironment(ldirectfb)
 gvt.loop(
     function ()
         local tot = 0

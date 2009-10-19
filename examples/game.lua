@@ -1,12 +1,12 @@
-local gvt      = require 'luagravity'
-local meta     = require 'luagravity.meta'
-local directfb = require 'luagravity.env.directfb'
+local gvt       = require 'luagravity'
+local meta      = require 'luagravity.meta'
+local ldirectfb = require 'luagravity.env.ldirectfb'
 
-local dfb = directfb.init()
-dfb:SetCooperativeLevel(directfb.DFSCL_FULLSCREEN)
+local dfb = ldirectfb.init()
+dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
 local dsc = {
-	flags = directfb.DSDESC_CAPS;
-	caps  = directfb.DSCAPS_PRIMARY + directfb.DSCAPS_FLIPPING;
+	flags = ldirectfb.DSDESC_CAPS;
+	caps  = ldirectfb.DSCAPS_PRIMARY + ldirectfb.DSCAPS_FLIPPING;
 }
 local sfc = dfb:CreateSurface(dsc)
 local dx, dy = sfc:GetSize()
@@ -37,7 +37,7 @@ APP = meta.global(function()
     -- score
     _score = 0
     local score = {
-        font = dfb:CreateFont('vera.ttf', { flags=directfb.DFDESC_HEIGHT, height=25 }),
+        font = dfb:CreateFont('vera.ttf', { flags=ldirectfb.DFDESC_HEIGHT, height=25 }),
         x = 10,
         y = 10,
     }
@@ -229,7 +229,7 @@ APP = meta.global(function()
 	        sfc:SetColor(255, 0, 0, 0)
 	        sfc:SetFont(score.font)
 	        sfc:DrawString(_score(), score.x, score.y,
-                        directfb.DSTF_LEFT+directfb.DSTF_TOP)
+                        ldirectfb.DSTF_LEFT+ldirectfb.DSTF_TOP)
 
             -- satellite
 	        sat.img:RenderTo(sfc, sat._x(), sat._y(), sat._width(), sat._height())
@@ -241,7 +241,7 @@ APP = meta.global(function()
    	            sfc:SetColor(255, 0, 0, 0)
 	            sfc:SetFont(score.font)
 	            sfc:DrawString('Voce perdeu!', 200, 200,
-                               directfb.DSTF_LEFT+directfb.DSTF_TOP)
+                               ldirectfb.DSTF_LEFT+ldirectfb.DSTF_TOP)
             end
 
             -- rocks
@@ -262,5 +262,5 @@ APP = meta.global(function()
     await('key.release.ESCAPE')
 end)
 
-gvt.setEnvironment(directfb)
+gvt.setEnvironment(ldirectfb)
 gvt.loop(APP)

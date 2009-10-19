@@ -1,11 +1,11 @@
 local gvt  = require 'luagravity'
 local expr = require 'luagravity.expr'
 local meta = require 'luagravity.meta'
-local directfb = require 'luagravity.env.directfb'
+local ldirectfb = require 'luagravity.env.ldirectfb'
 
 local type, assert, print = type, assert, print
 
-gvt.setEnvironment(directfb)
+gvt.setEnvironment(ldirectfb)
 
 gvt.loop(meta.global(
     function ()
@@ -23,7 +23,7 @@ gvt.loop(meta.global(
         assert(_f2.zero == true)
         assert(__f3.zero == false)
 
-        local brk = link(_f2, __f3)
+        link(_f2, __f3)
         _f2()
         assert(tot == 2)
         _f4()
@@ -32,7 +32,7 @@ gvt.loop(meta.global(
         await(0)
         _f4()
         assert(tot == 14, tot)
-        brk()
+        unlink(_f2, __f3)
         _f2()
         assert(tot == 15)
 

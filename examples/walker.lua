@@ -1,12 +1,12 @@
-local gvt      = require 'luagravity'
-local meta     = require 'luagravity.meta'
-local directfb = require 'luagravity.env.directfb'
+local gvt       = require 'luagravity'
+local meta      = require 'luagravity.meta'
+local ldirectfb = require 'luagravity.env.ldirectfb'
 
-local dfb = directfb.init()
-dfb:SetCooperativeLevel(directfb.DFSCL_FULLSCREEN)
+local dfb = ldirectfb.init()
+dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
 local dsc = {
-	flags = directfb.DSDESC_CAPS;
-	caps  = directfb.DSCAPS_PRIMARY + directfb.DSCAPS_FLIPPING;
+	flags = ldirectfb.DSDESC_CAPS;
+	caps  = ldirectfb.DSCAPS_PRIMARY + ldirectfb.DSCAPS_FLIPPING;
 }
 local sfc = dfb:CreateSurface(dsc)
 local dx, dy = sfc:GetSize()
@@ -30,7 +30,7 @@ local function redraw ()
     sfc:Flip()
 end
 
-gvt.setEnvironment(directfb)
+gvt.setEnvironment(ldirectfb)
 
 gvt.loop(function ()
     meta.global()

@@ -137,13 +137,12 @@ end
 
 local function attr (self, src)
 	if self.src == src then return end
-	if self.brk then
-		self.brk()
-		self.brk = nil
+	if is(self.src) then
+		gvt.unlink(self.src._set, self._set)
 	end
 	self.src = src
 	if is(src) then
-		self.brk = gvt.link(src._set, self._set)
+		gvt.link(src._set, self._set)
         gvt.call(self._set, src.value)
 	else
         gvt.call(self._set, src)
@@ -153,7 +152,6 @@ end
 function var (v)
     local self = new(v)
 	self.src  = nil
-	self.brk  = nil
     self.attr = attr
     return self
 end

@@ -1,5 +1,5 @@
 local gvt = require 'luagravity'
-local directfb = require 'luagravity.env.directfb'
+local ldirectfb = require 'luagravity.env.ldirectfb'
 
 local _start, _stop = 0, 0
 
@@ -19,7 +19,7 @@ end
 
 stop = gvt.create('stop', nil, true, f_stop)
 
-gvt.setEnvironment(directfb)
+gvt.setEnvironment(ldirectfb)
 gvt.loop(
     function ()
         -- Reacoes
@@ -35,7 +35,7 @@ gvt.loop(
         assert((_start==3) and (_stop==3), _stop)
 
         -- Quebra de elo "explicita"
-        rm()
+        gvt.unlink(start, stop)
         gvt.call(start)
         assert((_start==4) and (_stop==3))
 
