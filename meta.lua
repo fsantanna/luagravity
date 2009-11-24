@@ -1,8 +1,8 @@
 local gvt  = require 'luagravity'
 local expr = require 'luagravity.expr'
 
-local rawset, setmetatable, type, setfenv =
-      rawset, setmetatable, type, setfenv
+local rawset, setmetatable, type, setfenv, pairs =
+      rawset, setmetatable, type, setfenv, pairs
 local s_sub = string.sub
 
 module (...)
@@ -49,8 +49,12 @@ local notcond = function (e)
     return expr.condition(e)._false
 end
 
-function global (f)
+function global (f, g)
     local t = new(false)
+
+    for k, v in pairs (g) do
+       t[k] = v
+    end
 
     t.spawn  = gvt.spawn
     t.call   = gvt.call
