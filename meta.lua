@@ -59,6 +59,7 @@ function global (f)
     t.unlink = gvt.unlink
     t.await  = gvt.await
     t.cancel = gvt.cancel
+    t.post   = gvt.post
 
     t.delay   = expr.delay
     t.cond    = cond

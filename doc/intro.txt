@@ -7,6 +7,9 @@ concurrency.
 It is roughly based on Esterel and FrTime, two synchronous reactive languages, 
 the former having an imperative style, the latter being functional.
 
+For an introductory video about LuaGravity, click 
+[here](http://thesynchronousblog.wordpress.com/lua-workshop09-video/).
+
 LuaGravity is implemented as a set of runtime extensions to the Lua language.
 
 The key concept of LuaGravity is its execution unit, known as *reactor*.

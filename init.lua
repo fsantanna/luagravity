@@ -19,12 +19,12 @@ local TRACE = debug.traceback
 
 module (...)
 
-local STRINGS  = {}
-local TIMERS   = {}
-local STACK    = {}
-local NOW = 0
-
+local STRINGS = {}
+local TIMERS  = {}
+local STACK   = {}
+local NOW     = 0
 local ENV
+
 local traceback = function()
     local stacktrace = ''
     for _, r in ipairs(STACK) do
@@ -212,7 +212,7 @@ addEdge = function (rsrc, rdst, edgeType)
     edges[rdst] = edgeType
     updateHeight(rsrc, rdst, edgeType)
 
-    return brk
+    return rsrc, rdst
 end
 
 remEdge = function (rsrc, rdst, edgeType)
@@ -238,7 +238,7 @@ createTimer = function (time, rnow)
             break
         end
     end
-    local ret = {time=time,rdst=rnow,dead=false}
+    local ret = {time=time,rdst=rnow,cancelled=false}
     t_insert(TIMERS, I, ret)
     return ret
 end    
@@ -251,7 +251,7 @@ checkTimers = function (dt)
         if t.time > NOW then break end
 
         TIMERS[#TIMERS] = nil
-        if not t.dead then
+        if not t.cancelled then
             assert(t.rdst.state == 'awaiting', t.rdst.state)
             schedule('resume', t.rdst, t.time)
         end
@@ -350,7 +350,7 @@ function await (...)
             if (type(v)=='string') or is(v) then
                 remEdge(v, rnow, 'await')
             else
-                v.dead = true  -- timer
+                v.cancelled = true  -- timer
             end
         end
     end
