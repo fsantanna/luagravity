@@ -6,7 +6,7 @@ local meta      = require 'luagravity.meta'
 local rand = math.random
 
 local dfb = ldirectfb.init()
-dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
+--dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
 local dsc = {
 	flags = ldirectfb.DSDESC_CAPS;
 	caps  = ldirectfb.DSCAPS_PRIMARY + ldirectfb.DSCAPS_FLIPPING;

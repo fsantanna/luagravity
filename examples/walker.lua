@@ -3,7 +3,7 @@ local meta      = require 'luagravity.meta'
 local ldirectfb = require 'luagravity.env.ldirectfb'
 
 local dfb = ldirectfb.init()
-dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
+--dfb:SetCooperativeLevel(ldirectfb.DFSCL_FULLSCREEN)
 local dsc = {
 	flags = ldirectfb.DSDESC_CAPS;
 	caps  = ldirectfb.DSCAPS_PRIMARY + ldirectfb.DSCAPS_FLIPPING;
