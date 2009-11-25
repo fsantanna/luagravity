@@ -130,7 +130,7 @@ schedule = function (action, rdst, param)
         local head, prev = NEXT, nil
         rdst.cHeight = height
 
-        while head and (head.cHeight < height) do
+        while head and (head.cHeight <= height) do
             prev = head
             head = head.cNext
         end
@@ -233,7 +233,7 @@ createTimer = function (time, rnow)
     local I = 1
     for i=#TIMERS, 1, -1 do
         local t = TIMERS[i]
-        if t.time >= time then
+        if t.time > time then
             I = i + 1
             break
         end

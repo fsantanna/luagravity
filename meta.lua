@@ -1,8 +1,8 @@
 local gvt  = require 'luagravity'
 local expr = require 'luagravity.expr'
 
-local rawset, setmetatable, type, setfenv, pairs =
-      rawset, setmetatable, type, setfenv, pairs
+local rawset, setmetatable, type, setfenv, pairs, select, assert =
+      rawset, setmetatable, type, setfenv, pairs, select, assert
 local s_sub = string.sub
 
 module (...)
@@ -52,8 +52,11 @@ end
 function global (f, g)
     local t = new(false)
 
-    for k, v in pairs (g) do
-       t[k] = v
+    if g then
+        assert(type(g) == 'table')
+        for k, v in pairs(g) do
+            t[k] = v
+        end
     end
 
     t.spawn  = gvt.spawn
@@ -88,9 +91,12 @@ function global (f, g)
     end
 end
 
-function new (obj)
-    return setmetatable({
-        __obj  = obj,    -- true/false
-        __vars = {},
-    }, mt_t)
+function new (t, isObj)
+    if type(t) == 'boolean' then
+        isObj = t
+        t = {}
+    end
+    t.__obj  = isObj
+    t.__vars = {}
+    return setmetatable(t, mt_t)
 end
