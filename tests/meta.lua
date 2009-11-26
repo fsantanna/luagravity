@@ -141,7 +141,7 @@ gvt.loop(meta.global(
         fnear(s(), 6)
 
         -- OO
-        local t = meta.new({}, true)
+        local t = meta.new({}, nil, true)
         t.v = 3
         function t:_inc (v)
             self.v = self.v + (v or 1)

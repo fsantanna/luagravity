@@ -1,8 +1,8 @@
 local gvt  = require 'luagravity'
 local expr = require 'luagravity.expr'
 
-local rawset, setmetatable, type, setfenv, pairs, select, assert =
-      rawset, setmetatable, type, setfenv, pairs, select, assert
+local rawset, setmetatable, type, setfenv, getfenv, pairs, select, assert =
+      rawset, setmetatable, type, setfenv, getfenv, pairs, select, assert
 local s_sub = string.sub
 
 module (...)
@@ -22,7 +22,7 @@ gvt.mt_reactor.__call = gvt.call
 
 local mt_t = {
 	__index = function (t, k)
-        return t.__vars[k]
+        return t.__vars[k] or (t.__g and t.__g[k]) or nil
 	end,
 
 	__newindex = function (t, k, v)
@@ -49,8 +49,12 @@ local notcond = function (e)
     return expr.condition(e)._false
 end
 
+function copy (to, from)
+    return setfenv(to, getfenv(from or 2))
+end
+
 function global (f, g)
-    local t = new(false)
+    local t = new(nil, g, false)
 
     if g then
         assert(type(g) == 'table')
@@ -85,17 +89,15 @@ function global (f, g)
 	t.AND     = expr.lift(function(a, b) return a and b end);
 
     if f then
-        return setfenv(f, t)
+        return setfenv(f, t), t
     else
-        return setfenv(2, t)
+        return setfenv(2, t), t
     end
 end
 
-function new (t, isObj)
-    if type(t) == 'boolean' then
-        isObj = t
-        t = {}
-    end
+function new (t, g, isObj)
+    t = t or {}
+    t.__g    = g or false
     t.__obj  = isObj
     t.__vars = {}
     return setmetatable(t, mt_t)
