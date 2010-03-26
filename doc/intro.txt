@@ -273,7 +273,6 @@ module to interact with the operating system and, hence, are not portable.
 As a general rule, environments take advantage of existing library bindings to 
 Lua and are just a layer connecting Lua APIs to what LuaGravity expects.
 
-
 The `ldirectfb` library used in the example is a typical desktop environment 
 supporting keyboard and mouse events, and also drawing graphics on screen.
 An environment must be documented to expose which input events (and also output 
@@ -306,16 +305,26 @@ of the raw API.
 Download
 ========
 
-The current version is 0.5 and can be downloaded [here](luagravity-0.5.tgz).
+The current version is 0.5.1 and can be downloaded 
+[here](luagravity-0.5.1.tgz).
 
 I also keep a github repository [here](http://github.com/fsantanna/luagravity).
 
-The distribution contains the core language, the meta module and also the 
-DirectFB environment.
+The distribution contains the core language, the meta module and also two 
+environments, a very simple one to allow tests, and the DirectFB environment.
 The `meta` module requires the [LuaCoco](http://coco.luajit.org/) patch for 
 Lua.
 
-You need also the Lua binding to DirectFB that can be downloaded 
+Then unpack LuaGravity to somewhere in your LUA_PATH:
+
+    # cd /somewhere_in_lua_path
+    # tar xvzf luagravity-0.5.1.tgz
+    # mv luagravity-0.5.1/ luagravity/
+
+    # cd luagravity/tests
+    # make
+
+You might also need the Lua binding to DirectFB that can be downloaded 
 [here](ldirectfb-0.1.tgz):
 
     # tar xvzf ldirectfb-0.1.tgz
@@ -323,14 +332,7 @@ You need also the Lua binding to DirectFB that can be downloaded
     # make
     # cp ldirectfb.so /somewhere_in_lua_path
 
-Then unpack LuaGravity to somewhere in your LUA_PATH:
-
-    # cd /somewhere_in_lua_path
-    # tar xvzf luagravity-0.5.tgz
-    # mv luagravity-0.5/ luagravity/
-
-    # cd luagravity/tests
-    # make
+The following examples need DirectFB:
 
     # cd ../examples
     # lua sky.lua

@@ -1,6 +1,6 @@
 local gvt = require 'luagravity'
 local expr = require 'luagravity.expr'
-local ldirectfb = require 'luagravity.env.ldirectfb'
+local env = require 'luagravity.env.simple'
 
 local fnear = function (cur, exp)
 	return assert((cur >= exp*0.90) and (cur <= exp*1.10), cur)
@@ -17,7 +17,7 @@ local flt = function (v1, v2)
 end
 local llt = expr.lift(flt)
 
-gvt.setEnvironment(ldirectfb)
+gvt.setEnvironment(env)
 gvt.loop(
     function ()
         local v1 = expr.new(1)

@@ -1,5 +1,5 @@
 local gvt = require 'luagravity'
-local ldirectfb = require 'luagravity.env.ldirectfb'
+local env = require 'luagravity.env.simple'
 
 local _start, _stop = 0, 0
 
@@ -19,7 +19,7 @@ end
 
 stop = gvt.create('stop', nil, true, f_stop)
 
-gvt.setEnvironment(ldirectfb)
+gvt.setEnvironment(env)
 gvt.loop(
     function ()
         -- Reacoes

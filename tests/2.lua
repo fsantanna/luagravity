@@ -4,7 +4,7 @@
 -- Await
 
 local gvt = require 'luagravity'
-local ldirectfb = require 'luagravity.env.ldirectfb'
+local env = require 'luagravity.env.simple'
 
 -- testing if `s_f1()` call is synchronous
 local _ret
@@ -16,7 +16,7 @@ end)
 
 f = gvt.create('f', nil, true, function()end)
 
-gvt.setEnvironment(ldirectfb)
+gvt.setEnvironment(env)
 gvt.loop(
     function ()
         gvt.spawn(function()

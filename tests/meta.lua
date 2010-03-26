@@ -1,11 +1,11 @@
 local gvt  = require 'luagravity'
 local expr = require 'luagravity.expr'
 local meta = require 'luagravity.meta'
-local ldirectfb = require 'luagravity.env.ldirectfb'
+local env = require 'luagravity.env.simple'
 
 local type, assert, print = type, assert, print
 
-gvt.setEnvironment(ldirectfb)
+gvt.setEnvironment(env)
 
 gvt.loop(meta.global(
     function ()

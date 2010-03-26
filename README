@@ -17,7 +17,7 @@ Installation
 The distribution contains the core language, the meta module and also the 
 DirectFB environment.
 The `meta` module requires the LuaCoco[1] patch for Lua.
-You need also the Lua binding to DirectFB[2].
+You need also the Lua binding to DirectFB[2] if you want to run some examples.
 
 [1] http://coco.luajit.org/
 [2] http://github.com/fsantanna/ldirectfb
@@ -25,11 +25,13 @@ You need also the Lua binding to DirectFB[2].
 Then unpack LuaGravity to somewhere in your LUA_PATH:
 
     # cd /somewhere_in_lua_path
-    # tar xvzf luagravity-0.5.tgz
-    # mv luagravity-0.5/ luagravity/
+    # tar xvzf luagravity-0.5.1.tgz
+    # mv luagravity-0.5.1/ luagravity/
 
     # cd luagravity/tests
     # make
+
+Requires DirectFB:
 
     # cd ../examples
     # lua sky.lua

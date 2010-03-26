@@ -1,5 +1,4 @@
 local _G = _G
-local gvt = require 'luagravity'
 
 local ldirectfb = require 'ldirectfb'
 local dfb       = ldirectfb.init()
@@ -24,7 +23,6 @@ function ldirectfb.nextEvent ()
         buffer:WaitForEventWithTimeout(0, MPF)
         local now = f_now()
         local dt  = now-NOW
-        gvt.dt = dt
         NOW = now
         return 'dt', dt
     else

@@ -272,7 +272,7 @@ end
 
 mt_reactor = {}
 cancel = {}
-dt = 0          -- TODO: ugly
+dt = nil
 
 function stop (reactor)
     assert(reactor.state == 'awaiting', reactor.state)
@@ -308,8 +308,9 @@ function call (rdst, param, ...)
         -- TODO: assert if there is a delayed reactor in the stack
         schedule('start', rdst, param)
         ret = await(rdst)
+        --await(0)
     end
-    run()
+    run() -- make all pending reactor execute before calling reactor
     return ret
 end
 
@@ -386,6 +387,7 @@ function loop (app, param, zero)
     run()
     while app.state ~= 'ready' do
         local evt, param = ENV.nextEvent()
+        if evt == 'dt' then dt = param end
         if evt then
             post(evt, param)
         end
