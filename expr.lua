@@ -159,7 +159,7 @@ end
 -- INTEGRAL / DERIVATIVE
 
 local function integral_set (self, _)
-    local value = self.value + self.expr.value*gvt.dt
+    local value = self.value + self.expr.value*gvt.S.dt
     self.value = value
     return value
 end
@@ -179,7 +179,7 @@ end
 local function derivative_set (self, _)
     local cur  = self.expr.value
     local last = self.last
-    local value = (last and (cur-last)/gvt.dt) or nil
+    local value = (last and (cur-last)/gvt.S.dt) or nil
     self.last = cur
     self.value = value
     return value

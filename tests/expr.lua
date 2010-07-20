@@ -17,9 +17,9 @@ local flt = function (v1, v2)
 end
 local llt = expr.lift(flt)
 
-gvt.setEnvironment(env)
 gvt.loop(
     function ()
+        gvt.setEnvironment(env)
         local v1 = expr.new(1)
         local v2 = expr.new(2)
         gvt.link(v1._set, v2._set)

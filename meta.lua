@@ -1,8 +1,8 @@
 local gvt  = require 'luagravity'
 local expr = require 'luagravity.expr'
 
-local rawset, setmetatable, type, setfenv, getfenv, pairs, select, assert =
-      rawset, setmetatable, type, setfenv, getfenv, pairs, select, assert
+local rawset, setmetatable, type, setfenv, getfenv, pairs, select, assert, print, loadfile =
+      rawset, setmetatable, type, setfenv, getfenv, pairs, select, assert, print, loadfile
 local s_sub = string.sub
 
 module (...)
@@ -22,7 +22,7 @@ gvt.mt_reactor.__call = gvt.call
 
 local mt_t = {
 	__index = function (t, k)
-        return t.__vars[k] or (t.__g and t.__g[k]) or nil
+        return t.__vars[k] or (t.__env and t.__env[k]) or nil
 	end,
 
 	__newindex = function (t, k, v)
@@ -53,15 +53,9 @@ function copy (to, from)
     return setfenv(to, getfenv(from or 2))
 end
 
-function global (f, g)
-    local t = new(nil, g, false)
-
-    if g then
-        assert(type(g) == 'table')
-        for k, v in pairs(g) do
-            t[k] = v
-        end
-    end
+function apply (f, env)
+    env = env or 1
+    local t = new(nil, env+1, false)
 
     t.spawn  = gvt.spawn
     t.call   = gvt.call
@@ -87,6 +81,7 @@ function global (f, g)
 	t.NOT     = expr.lift(function(a) return not a end);
 	t.OR      = expr.lift(function(a, b) return a or b end);
 	t.AND     = expr.lift(function(a, b) return a and b end);
+    --t.IDX     = expr.lift(function(t, k) return t and k and t[k] end);
 
     if f then
         return setfenv(f, t), t
@@ -95,10 +90,23 @@ function global (f, g)
     end
 end
 
-function new (t, g, isObj)
-    t = t or {}
-    t.__g    = g or false
+function dofile (filename, env)
+    env = env or 1
+    local f = apply(assert(loadfile(filename)), env+1)
+    return f() or getfenv(f)
+end
+
+function new (old, env, isObj)
+    env = env or 1
+    local t = {}
+    t.__env  = getfenv(env+1) or false
     t.__obj  = isObj
     t.__vars = {}
-    return setmetatable(t, mt_t)
+    setmetatable(t, mt_t)
+    if old then
+        for k, v in pairs(old) do
+            t[k] = v
+        end
+    end
+    return t
 end

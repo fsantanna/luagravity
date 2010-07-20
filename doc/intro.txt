@@ -18,8 +18,7 @@ following similarities:
 
 * Reactors run implicitly, always as a consequence of a change in the 
   environment.
-* Reactors follow the synchronous hypothesis, which assumes that their 
-  execution is atomic and conceptually instantaneous.
+* The execution of reactors is atomic and conceptually instantaneous.
 
 However, reactors differ from callbacks in the following characteristics:
 

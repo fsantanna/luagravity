@@ -5,10 +5,9 @@ local env = require 'luagravity.env.simple'
 
 local type, assert, print = type, assert, print
 
-gvt.setEnvironment(env)
-
-gvt.loop(meta.global(
+gvt.loop(meta.apply(
     function ()
+        gvt.setEnvironment(env)
 
         -- REACTORS
 
@@ -63,7 +62,8 @@ gvt.loop(meta.global(
                (_v3() == 10) and (_v4() ==7))
 
         local fnear = function (cur, exp)
-	        return assert((cur >= exp*0.90) and (cur <= exp*1.10), cur)
+            return assert((cur >= exp*0.90) and (cur <= exp*1.10),
+                          exp..' vs '..cur)
         end
         local lnear = L(fnear)
 
@@ -76,6 +76,27 @@ gvt.loop(meta.global(
             return assert(v1 < v2)
         end
         local llt = L(flt)
+
+        -- IDX
+        --[[
+        do
+            _k1 = 1
+            local t1 = { 1, 2 }
+            local _v1 = IDX(t1, _k1)
+            assert(_v1() == 1)
+            _k1 = 2
+            assert(_v1() == 2)
+
+            _k2 = 1
+            local t2 = { 1, _v1 }
+            local _v2 = IDX(t2, _k2)
+            assert(_v2() == 1)
+            _k2 = 2
+            assert(_v2()() == 2)
+            _k1 = 1
+            assert(_v2()() == 1)
+        end
+        ]]
 
         -- GLITCHES
 
@@ -132,12 +153,12 @@ gvt.loop(meta.global(
         llt(s, s1)
         local d1 = D(s1)
         local d2 = D(10000)
-        await(0) -- para ter derivada
-        await(0) -- para ter derivada
-        await(0) -- para ter derivada
+        await(0.1) -- para ter derivada
+        await(0.1) -- para ter derivada
+        await(0.1) -- para ter derivada
         lnear(d1, 3)
         lequal(d2, 0)
-        await(1.5)
+        await(1.2)
         fnear(s(), 6)
 
         -- OO

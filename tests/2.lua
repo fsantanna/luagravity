@@ -16,9 +16,9 @@ end)
 
 f = gvt.create('f', nil, true, function()end)
 
-gvt.setEnvironment(env)
 gvt.loop(
     function ()
+        gvt.setEnvironment(env)
         gvt.spawn(function()
             gvt.call(f1)
             assert(_ret == true)

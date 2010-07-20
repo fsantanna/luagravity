@@ -19,9 +19,10 @@ end
 
 stop = gvt.create('stop', nil, true, f_stop)
 
-gvt.setEnvironment(env)
 gvt.loop(
     function ()
+        gvt.setEnvironment(env)
+
         -- Reacoes
         gvt.call(start)
         gvt.call(stop)

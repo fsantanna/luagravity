@@ -3,9 +3,9 @@
 local gvt = require 'luagravity'
 local env = require 'luagravity.env.simple'
 
-gvt.setEnvironment(env)
 gvt.loop(
     function ()
+        gvt.setEnvironment(env)
         local tot = 0
         local r = gvt.create('r', nil, false, function() gvt.await(0.2) end)
         local a = gvt.create('a', nil, false, function() tot=tot+1 gvt.await(0) end)

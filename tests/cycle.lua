@@ -3,9 +3,9 @@
 local gvt = require 'luagravity'
 local env = require 'luagravity.env.simple'
 
-gvt.setEnvironment(env)
 gvt.loop(
     function ()
+        gvt.setEnvironment(env)
         -- Testing timer accuracy
         local tot = 0
         local f = gvt.create('f', nil, false,

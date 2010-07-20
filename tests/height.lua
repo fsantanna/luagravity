@@ -1,9 +1,9 @@
 local gvt = require 'luagravity'
 local env = require 'luagravity.env.simple'
 
-gvt.setEnvironment(env)
 gvt.loop(
     function ()
+        gvt.setEnvironment(env)
         local zero = gvt.create('zero',nil,true,function()end)
         local ret, msg = pcall(gvt.link, zero, zero)
         assert((not ret) and string.match(msg, 'tight cycle detected'))
