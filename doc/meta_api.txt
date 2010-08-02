@@ -56,7 +56,7 @@ of LuaGravity.
 
 The environment is also extended with the following primitives:
 
-    spawn  call  stop  link  await  cancel
+    spawn  call  kill  link  unlink  await  cancel  post  deactivate  reactivate
     delay  cond  L  S  D
     LEN  EQ  LT  LE  GT  GE  NOT  OR  AND
 

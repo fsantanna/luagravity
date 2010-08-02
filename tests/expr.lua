@@ -17,9 +17,8 @@ local flt = function (v1, v2)
 end
 local llt = expr.lift(flt)
 
-gvt.loop(
+gvt.loop(env.nextEvent,
     function ()
-        gvt.setEnvironment(env)
         local v1 = expr.new(1)
         local v2 = expr.new(2)
         gvt.link(v1._set, v2._set)
@@ -110,8 +109,8 @@ gvt.loop(
         local s  = expr.integral(3)
         local ss = expr.integral(3)
         lequal(s, ss)
-        gvt.await(0.5)
-        fnear(s.value, 1.5)
+        gvt.await(500)
+        fnear(s.value, 1500)
         local s1 = ladd(s, 1)
         llt(s, s1)
         local d1 = expr.derivative(s1)
@@ -121,24 +120,24 @@ gvt.loop(
         gvt.await(0) -- para ter derivada
         lnear(d1, 3)
         lequal(d2, 0)
-        gvt.await(1.5)
-        fnear(s.value, 6)
+        gvt.await(1500)
+        fnear(s.value, 6000)
 
         -- DELAY
         local a = expr.new(0)
-        local d = expr.delay(a, 0.25)
+        local d = expr.delay(a, 250)
         local b = expr.var()
         b:attr(d)
-        gvt.await(0.1)
+        gvt.await(100)
         gvt.call(a._set, 1)
         gvt.call(a._set, 2)
         assert(d.value == nil)
         assert(b.value == nil)
-        gvt.await(0.2)
+        gvt.await(200)
         assert(d.value == 0)
         assert(b.value == 0)
-        gvt.await(0.1)
-        assert(d.value == 2)
+        gvt.await(100)
+        assert(d.value == 2, d.value)
         assert(b.value == 2)
 
         -- COND
@@ -147,10 +146,10 @@ gvt.loop(
         local x = false
         local s = expr.integral(1)
         gvt.spawn(function()
-            gvt.await(0.5)
+            gvt.await(500)
             x = true
         end)
-        gvt.await(expr.condition(lt(1,s))._true)
+        gvt.await(expr.condition(lt(1000,s))._true)
         assert(x)
     end)
 

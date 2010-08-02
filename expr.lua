@@ -30,7 +30,7 @@ function new (v)
     local self = setmetatable({
         value = v,
     }, mt_expr)
-    self._set = gvt.create('set', self, true, expr_set)
+    self._set = gvt.create(expr_set, {name='set',obj=self,zero=true})
     return self
 end
 
@@ -38,21 +38,21 @@ end
 
 local function delay_start (self, v)
     gvt.spawn(function()
-        gvt.await(self.secs.value)
+        gvt.await(self.msecs.value)
         gvt.call(self._set, v)
     end)
 end
 
-function delay (expr, secs)
+function delay (expr, msecs)
     if not is(expr) then
         expr = new(expr)
     end
-    if not is(secs) then
-        secs = new(secs or 0)
+    if not is(msecs) then
+        msecs = new(msecs or 0)
     end
     local self = new()
-    self.secs = secs
-    self._start = gvt.create('start', self, true, delay_start)
+    self.msecs = msecs
+    self._start = gvt.create(delay_start, {name='start',obj=self,zero=true})
     gvt.link(expr._set, self._start)
     gvt.call(self._start, expr.value)
     return self
@@ -88,9 +88,9 @@ function condition (expr)
         expr = new(expr)
     end
     local self  = new(expr.value)
-    self._set   = gvt.create('set',   self, true, cond_set)
-    self._true  = gvt.create('true',  self, true, cond_true)
-    self._false = gvt.create('false', self, true, cond_false)
+    self._set   = gvt.create(cond_set,   {name='set',  obj=self,zero=true})
+    self._true  = gvt.create(cond_true,  {name='true', obj=self,zero=true})
+    self._false = gvt.create(cond_false, {name='false',obj=self,zero=true})
     gvt.link(expr._set,  self._set)
     gvt.link(self._set, self._true)
     gvt.link(self._set, self._false)
@@ -117,8 +117,7 @@ function lift (fun)
         local self = new(nil)
 	    self.fun  = fun    ; assert(type(fun) == 'function')
 	    self.srcs = {...}
-        self._set = gvt.create('set', self, true, lift_set)
-
+        self._set = gvt.create(lift_set, {name='set',obj=self,zero=true})
         local rev = {}  -- avoids two equal links
 	    for i, src in ipairs(self.srcs) do
             if not rev[src] then
@@ -170,7 +169,7 @@ function integral (expr)
     end
     local self = new(0)
     self.expr  = expr
-    self._set = gvt.create('set', self, true, integral_set)
+    self._set = gvt.create(integral_set, {name='set',obj=self,zero=true})
     gvt.link('dt', self._set)
     gvt.link(expr._set, self._set)
     return self
@@ -192,7 +191,7 @@ function derivative (expr)
     local self = new(nil)
     self.expr  = expr
     self.last = nil
-    self._set = gvt.create('set', self, true, derivative_set)
+    self._set = gvt.create(derivative_set, {name='set',obj=self,zero=true})
     gvt.link('dt', self._set)
     gvt.link(expr._set, self._set)
     return self

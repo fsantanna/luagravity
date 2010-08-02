@@ -33,7 +33,7 @@ local mt_t = {
 
 		if type(v) == 'function' then
             local inst = (s_sub(k, 2, 2) ~= '_')
-            rawset(t, k, gvt.create(k, t.__obj and t, inst, v))
+            rawset(t, k, gvt.create(v, {name=k, obj=(t.__obj and t), zero=inst}))
         else
 			local var = t.__vars[k] or expr.var()
             t.__vars[k] = var
@@ -59,12 +59,14 @@ function apply (f, env)
 
     t.spawn  = gvt.spawn
     t.call   = gvt.call
-    t.stop   = gvt.stop
+    t.kill   = gvt.kill
     t.link   = gvt.link
     t.unlink = gvt.unlink
     t.await  = gvt.await
     t.cancel = gvt.cancel
     t.post   = gvt.post
+    t.deactivate = gvt.deactivate
+    t.reactivate = gvt.reactivate
 
     t.delay   = expr.delay
     t.cond    = cond

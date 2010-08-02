@@ -3,13 +3,30 @@
     <title>LuaGravity</title>
 	<link rel="stylesheet" href="doc.css" type="text/css"/>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-17746978-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
 </head>
 <body>
 <div id="container">
 <div id="product">
 	<p/>
 	<div id="product_logo">
-    	<a href="http://www.lua.org"> <img alt="Lua logo" src="lua.gif"/> </a>
+        <a href="http://www.lua.org">
+            <img alt="Lua logo" src="luagravity.png"/>
+         </a>
 	</div>
     <div id="product_name"><big><strong>LuaGravity</strong></big></div>
 	<div id="product_description">  </div>
@@ -21,23 +38,31 @@
     <li><a href="#section_intro"> Introduction </a></li>
     <li><a href="#section_reactivity"> Reactivity </a></li>
     <li><a href="#section_scheduler"> The Scheduler </a></li>
-    <li><a href="#section_calling"> Calling Reactors </a></li>
+    <li><a href="#section_spawning"> Spawning Reactors </a></li>
     <li><a href="#section_determinism"> (Non)Determinism </a></li>
-    <li><a href="#section_environment"> Environments </a></li>
+    <li><a href="#section_environment"> Environments </a>
+    <ul>
+        <li><a href="#section_environment_list"> Supported </a></li>
+    </ul>
+    </li>
     <li><a href="#section_meta"> The Meta Language </a></li>
     <li><a href="#section_download"> Download </a></li>
     <li><a href="#section_acknowledgements"> Acknowledgements </a></li>
+    <li><br></li>
     <li><a href="#section_api"> API </a>
-    <ul>
+        <li><a href="#api_start"> <tt>luagravity.start</tt> </a></li>
+        <li><a href="#api_step"> <tt>luagravity.step</tt> </a></li>
+        <li><a href="#api_loop"> <tt>luagravity.loop</tt> </a></li>
         <li><a href="#api_create"> <tt>luagravity.create</tt> </a></li>
         <li><a href="#api_spawn"> <tt>luagravity.spawn</tt> </a></li>
         <li><a href="#api_call"> <tt>luagravity.call</tt> </a></li>
-        <li><a href="#api_stop"> <tt>luagravity.stop</tt> </a></li>
+        <li><a href="#api_kill"> <tt>luagravity.kill</tt> </a></li>
         <li><a href="#api_link"> <tt>luagravity.link</tt> </a></li>
         <li><a href="#api_unlink"> <tt>luagravity.unlink</tt> </a></li>
         <li><a href="#api_await"> <tt>luagravity.await</tt> </a></li>
         <li><a href="#api_cancel"> <tt>luagravity.cancel</tt> </a></li>
-    </ul>
+        <li><a href="#api_deactivate"> <tt>luagravity.deactivate</tt> </a></li>
+        <li><a href="#api_reactivate"> <tt>luagravity.reactivate</tt> </a></li>
     </li>
 </ul>
 </div> <!-- id="navigation" -->

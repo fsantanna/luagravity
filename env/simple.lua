@@ -1,5 +1,5 @@
 module (...)
 
 function nextEvent ()
-    return 'dt', 0.05
+    return 'dt', 5
 end

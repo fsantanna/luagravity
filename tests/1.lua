@@ -9,7 +9,7 @@ local f_start = function(v)
     return v + 1
 end
 
-start = gvt.create('start', nil, true, f_start)
+start = gvt.create(f_start, {name='start',zero=true})
 
 local f_stop = function(v)
     v = v or 0
@@ -17,11 +17,10 @@ local f_stop = function(v)
     return v + 1
 end
 
-stop = gvt.create('stop', nil, true, f_stop)
+stop = gvt.create(f_stop, {name='stop',zero=true})
 
-gvt.loop(
+gvt.loop(env.nextEvent,
     function ()
-        gvt.setEnvironment(env)
 
         -- Reacoes
         gvt.call(start)

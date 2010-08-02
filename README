@@ -25,15 +25,8 @@ You need also the Lua binding to DirectFB[2] if you want to run some examples.
 Then unpack LuaGravity to somewhere in your LUA_PATH:
 
     # cd /somewhere_in_lua_path
-    # tar xvzf luagravity-0.5.1.tgz
-    # mv luagravity-0.5.1/ luagravity/
+    # tar xvzf luagravity-0.6.tgz
+    # mv luagravity-0.6/ luagravity/
 
     # cd luagravity/tests
     # make
-
-Requires DirectFB:
-
-    # cd ../examples
-    # lua sky.lua
-    # lua walker.lua
-    # lua game.lua

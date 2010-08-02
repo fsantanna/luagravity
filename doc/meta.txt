@@ -2,7 +2,7 @@
 Introduction
 ============
 
-The `meta` module extends Lua with the semantics of LuaGravity.
+The `meta` module extends Lua with the semantics of [LuaGravity](index.html).
 With a special syntax, the programmer creates reactors instead of functions and 
 reactive variables instead of conventional Lua variables.
 
