@@ -3,11 +3,11 @@
 -- * Rewrite the debugging system.
 -- * Rewrite the topological order algorithm.
 -- * Test rsrc as last parameter of triggers.
--- * Remove gvt.call(), demand explicit use of spawn/await
--- * GVT reentrante (more than one gvt application per Lua state)
 -- * IDX: doc and tests
 -- * meta.new, env, nova api, testes, doc
 -- * await(p) -- em vez de -- p() / TESTES / DOC
+-- * tirar o timer daqui
+-- * gvt / rct.*
 --]]
 
 local _G = _G
@@ -21,62 +21,40 @@ local t_insert, t_remove = table.insert, table.remove
 local error, assert, type, pairs, ipairs, setmetatable, getmetatable, tostring =
       error, assert, type, pairs, ipairs, setmetatable, getmetatable, tostring
 
-local traceback = debug.traceback
-
 module (...)
 
 local SS = setmetatable({}, {__mode='k'})
 S = nil
 
-local mytraceback = function()
-    local stacktrace = ''
-    for _, r in ipairs(S.stack) do
-        stacktrace = stacktrace .. r.name .. ' | '
-    end
-    return 'gvt traceback: ' .. stacktrace .. '\n' .. traceback()
-end
-
-local myerror = function (msg)
-    error((msg or '<no message>') .. '\n' .. mytraceback() .. '\n')
-end
-
-local myassert = function (cond, msg)
-    if cond then
-        return cond
-    else
-        myerror(msg)
-    end
-end
-
-local trigger, schedule, run, finish, updateHeight,
+local trigger, schedule, run, finish, propagate, updateHeight,
       addEdge, createTimer, checkTimers, check_create
 
 trigger = function (rsrc, edgeType, rdst, param)
     local st, ret
     if (edgeType == 'resume') or (edgeType == 'call') then
-        myassert(rdst.clearAwaiting)()
+        assert(rdst.clearAwaiting)()
         rdst.clearAwaiting = nil
     end
 
     -- CALL
     S.stack[#S.stack+1] = rdst
     if rdst.zero then
-        myassert((not rdst.co) and (rdst.state=='ready'))
+        assert((not rdst.co) and (rdst.state=='ready'))
         rdst.state = 'running'
         if rdst.obj then
-            ret = rdst.fun(rdst.obj, param, rsrc)
+            ret = rdst.body(rdst.obj, param, rsrc)
         else
-            ret = rdst.fun(param, rsrc)
+            ret = rdst.body(param, rsrc)
         end
     else
         if edgeType == 'start' then -- reacao duradoura: necessita de co-rotina
-            myassert((not rdst.co) and (rdst.state=='ready'), rdst.state)
-            rdst.co = co_create(rdst.fun)
+            assert((not rdst.co) and (rdst.state=='ready'), rdst.state)
+            rdst.co = co_create(rdst.body)
         else -- resume
-            myassert((edgeType == 'resume') or (edgeType == 'call'), edgeType)
-            myassert(rdst.co and (rdst.state=='awaiting'))
+            assert((edgeType == 'resume') or (edgeType == 'call'), edgeType)
+            assert(rdst.co and (rdst.state=='awaiting'))
         end
-        myassert(co_status(rdst.co) == 'suspended')
+        assert(co_status(rdst.co) == 'suspended')
         rdst.state = 'running'
         st, ret = co_resume(rdst.co, param, rsrc)
 --[[
@@ -87,7 +65,7 @@ TEMP: nao fazia sentido passar o obj no resume!
             st, ret = co_resume(rdst.co, param, rsrc)
         end
 ]]
-        myassert(st, ret)
+        assert(st, ret)
     end
     S.stack[#S.stack] = nil
 
@@ -97,7 +75,7 @@ TEMP: nao fazia sentido passar o obj no resume!
 
     -- finished
     else
-        myassert(rdst.zero or (co_status(rdst.co) == 'dead'))
+        assert(rdst.zero or (co_status(rdst.co) == 'dead'))
         finish(rdst, ret) -- it will set rdst.state = 'ready'
     end
 
@@ -118,7 +96,7 @@ schedule = function (rsrc, edgeType, rdst, param)
     rdst.cRsrc = rsrc
 
     if cur then
-        myassert(cur == edgeType)
+        assert(cur == edgeType)
     else
         rdst.cEdgeType = edgeType
         local height = rdst.height or 0
@@ -155,21 +133,22 @@ finish = function (reactor, ret)
     if not reactor.zero then
         reactor.co = nil
     end
+    propagate(reactor, reactor.edges, ret)
+end
 
-    -- propagate
-    local edges = reactor.edges
+propagate = function (src, edges, ret)
     for rdst, edgeType in pairs(edges) do
-        if (edgeType == 'call') or (ret ~= cancel) then
-            schedule(reactor, edgeType, rdst, ret)
+        if (ret~=cancel or edgeType=='call') and
+           (not is(rdst) or rdst.state~='deactivated') then
+            schedule(src, edgeType, rdst, ret)
         end
     end
 end
 
 updateHeight = function (rsrc, rdst, edgeType)
-    if type(rsrc) == 'string' then return end
     if edgeType ~= 'start' then return end -- TODO: entender isso novamente
     if not rdst.zero then return end
-    myassert(not rdst._wasVisited, 'tight cycle detected')
+    assert(not rdst._wasVisited, 'tight cycle detected')
 
     if not rsrc.height then
         rsrc.height = 1
@@ -189,9 +168,9 @@ updateHeight = function (rsrc, rdst, edgeType)
 end
 
 addEdge = function (rsrc, rdst, edgeType)
-    myassert((type(rsrc) == 'string') or is(rsrc))
-    rdst = check_create(rdst, nil, nil, true)
-    myassert(edgeType)
+    assert((type(rsrc) == 'string') or is(rsrc))
+    assert(is(rdst))
+    assert(edgeType)
 
     local edges
     if type(rsrc) == 'string' then
@@ -200,11 +179,13 @@ addEdge = function (rsrc, rdst, edgeType)
     else
         edges = rsrc.edges
     end
-    myassert(not edges[rdst], tostring(rsrc)..' -> '..tostring(rdst)) -- TODO: never tested!
+    assert(not edges[rdst], tostring(rsrc)..' -> '..tostring(rdst)) -- TODO: never tested!
 
     -- create the link
     edges[rdst] = edgeType
-    updateHeight(rsrc, rdst, edgeType)
+    if type(rsrc) ~= 'string' then
+        updateHeight(rsrc, rdst, edgeType)
+    end
 
     return rsrc, rdst
 end
@@ -218,44 +199,49 @@ remEdge = function (rsrc, rdst, edgeType)
         edges = rsrc.edges
     end
     local tp = edges[rdst]
-    myassert(tp and (tp == edgeType)) -- TODO: never tested!
+    assert(tp and (tp == edgeType)) -- TODO: never tested!
     edges[rdst] = nil
 end
 
-createTimer = function (time, rnow)
-    time = S.now + time
+createTimer = function (msecs, rnow)
+    msecs = S.now + msecs
     local I = 1
     for i=#S.timers, 1, -1 do
         local t = S.timers[i]
-        if t.time > time then
+        if t.msecs > msecs then
             I = i + 1
             break
         end
     end
-    local ret = {time=time,rdst=rnow,cancelled=false}
+    local ret = {msecs=msecs,rdst=rnow}
     t_insert(S.timers, I, ret)
     return ret
-end    
+end
 
 checkTimers = function (dt)
     S.now = S.now + dt
     while true do
         if #S.timers == 0 then break end
         local t = S.timers[#S.timers]
-        if t.time > S.now then break end
-
+        if t.msecs > S.now then break end
         S.timers[#S.timers] = nil
-        if not t.cancelled then
-            myassert(t.rdst.state == 'awaiting', t.rdst.state)
-            schedule('dt', 'resume', t.rdst, t.time)
+        schedule('dt', 'resume', t.rdst, t.msecs)
+    end
+end
+
+cancelTimer = function (timer)
+    for i, cur in ipairs(S.timers) do
+        if timer == cur then
+            t_remove(S.timers, i)
+            return
         end
     end
 end
 
-check_create = function (reactor, name, obj, zero)
+check_create = function (reactor, t)
     if not is(reactor) then
-        myassert(type(reactor) == 'function')
-        reactor = create(name, obj, zero, reactor)
+        assert(type(reactor) == 'function')
+        reactor = create(reactor, t)
     end
     return reactor
 end
@@ -267,8 +253,8 @@ end
 mt_reactor = {}
 cancel = {}
 
-function stop (reactor)
-    myassert(reactor.state == 'awaiting', reactor.state)
+function kill (reactor)
+    assert(reactor.state == 'awaiting', reactor.state)
     reactor.clearAwaiting()
     reactor.clearAwaiting = nil
     return finish(reactor, cancel)
@@ -276,21 +262,21 @@ end
 
 function post (event, value)
     local edges = S.strings[event]
-    if not edges then return end
-    for rdst, edgeType in pairs(edges) do
-        schedule(event, edgeType, rdst, value)
+    if edges then
+        propagate(event, edges, value)
+        run()
     end
-    run()
 end
 
 function spawn (rdst, param)
-    rdst = check_create(rdst, nil, nil, false)
-    --myassert(not rdst.zero)
+    rdst = check_create(rdst)
+    --assert(not rdst.zero)
     schedule(S.stack[#S.stack], 'start', rdst, param)  -- TODO: nao conferi se eh STACK[#STACK] msm
     return rdst
 end
 
 function link (rsrc, rdst)
+    rdst = check_create(rdst, {zero=true})
     return addEdge(rsrc, rdst, 'start')
 end
 
@@ -300,23 +286,28 @@ end
 
 local function _await (edgeType, ...)
     local rnow = S.stack[#S.stack]
-    myassert(rnow, 'no reactor running')
-    myassert(not rnow.zero, rnow.name)
+    assert(rnow, 'no reactor running')
+    assert(not rnow.zero, rnow.name)
 
     local t = { ... }
-    myassert(#t > 0)
+    assert(#t > 0)
     for i, v in ipairs(t)
     do
+        if v == 0 then v = 'dt' end
+
         local tp = type(v)
 
         if tp == 'number' then
-            if v == 0 then v = 0.00001 end
+            t[i] = false
             if v > 0 then
-                t[i] = createTimer(v, rnow)
+                assert(not rnow.timer)
+                rnow.timer = createTimer(v, rnow)
+            else
+                assert(v == -1)
             end
 
         else  -- reactor
-            myassert((type(v)=='string') or is(v))--, TRACE())
+            assert((type(v)=='string') or is(v))--, TRACE())
             t[i] = v
             addEdge(v, rnow, edgeType)
         end
@@ -324,11 +315,13 @@ local function _await (edgeType, ...)
 
     -- remove links/timers after resume
     rnow.clearAwaiting = function ()
+        if rnow.timer then
+            cancelTimer(rnow.timer)
+            rnow.timer = nil
+        end
         for i, v in ipairs(t) do
-            if (type(v)=='string') or is(v) then
+            if v then
                 remEdge(v, rnow, edgeType)
-            else
-                v.cancelled = true  -- timer
             end
         end
     end
@@ -346,8 +339,8 @@ function call (rdst, param, ...)
     end
     local ret, rsrc
     if rdst.zero then
-        ret, rsrc = _await('call', spawn(rdst,param))
-        --ret, rsrc = trigger(S.stack[#S.stack], 'start', rdst, param)  -- TODO: nao conferi se eh STACK[#STACK] msm
+        --ret, rsrc = _await('call', spawn(rdst,param))
+        ret, rsrc = trigger(S.stack[#S.stack], 'start', rdst, param)  -- TODO: nao conferi se eh STACK[#STACK] msm
     else
         ret, rsrc = _await('call', spawn(rdst,param))
     end
@@ -359,36 +352,50 @@ function is (reactor)
     return getmetatable(reactor) == mt_reactor
 end
 
-function create (name, obj, zero, fun)
-    return setmetatable({
-        name    = name or 'anon',
-        obj     = obj,
-        zero    = zero,
-        fun     = fun,
-        edges   = {},
-        co      = nil,
-        state   = 'ready',
-        height  = nil,
-        cEdgeType = nil,
-        cParam  = nil,
-        cNext   = nil,
-    }, mt_reactor)
+function create (body, t) -- {name,obj,zero}
+    t = t or {}
+    t.body    = assert(type(body)=='function') and body
+    t.name    = t.name or 'anon'
+    t.edges   = {}
+    t.co      = nil
+    t.state   = 'ready'  -- ready, awaiting, running, deactivated
+    t.height  = nil
+    t.timer   = nil
+    t.cEdgeType = nil
+    t.cParam  = nil
+    t.cNext   = nil
+    return setmetatable(t, mt_reactor)
 end
 
-function loop (app, param, zero)
-    app = start(app, param, zero)
-    myassert(S.env)
+function deactivate (reactor)
+    assert(reactor.state == 'awaiting')
+    reactor.state = 'deactivated'
+    if reactor.timer then
+        cancelTimer(reactor.timer)
+        reactor.timer.msecs = reactor.timer.msecs - S.now
+    end
+end
+
+function reactivate (reactor)
+    assert(reactor.state == 'deactivated')
+    reactor.state = 'awaiting'
+    if reactor.timer then
+        reactor.timer = createTimer(reactor.timer.msecs, reactor)
+    end
+end
+
+function loop (nextEvent, app, param)
+    app = start(app, param)
     while app.state ~= 'ready' do
-        local evt, param = S.env.nextEvent()
+        local evt, param = nextEvent()
         step(app, evt, param)
     end
 end
 
-function start (app, param, zero)
-    app = check_create(app, 'main', nil, zero)
+function start (app, param)
+    app = check_create(app, {name='main'})
 
     S = {
-        env     = nil,
         strings = {},
         timers  = {},
 
@@ -399,14 +406,14 @@ function start (app, param, zero)
     }
     SS[app] = S
 
-    schedule(nil, 'start', app, param)
+    spawn(app, param)
     run()
     return app
 end
 
 function step (app, evt, param)
-    myassert(app.state == 'awaiting')
-    S = myassert(SS[app])
+    --assert(app.state == 'awaiting')
+    S = assert(SS[app])
     if evt == 'dt' then
         S.dt = param
         checkTimers(param)
@@ -415,14 +422,4 @@ function step (app, evt, param)
     if evt then
         post(evt, param)
     end
-end
-
-function setEnvironment (env)
-    S.env = env
-end
-function environment (env)  -- TODO: substitute setEnv?
-    if env then
-        S.env = env
-    end
-    return S.env
 end

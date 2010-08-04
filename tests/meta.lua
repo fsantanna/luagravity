@@ -5,9 +5,8 @@ local env = require 'luagravity.env.simple'
 
 local type, assert, print = type, assert, print
 
-gvt.loop(meta.apply(
+gvt.loop(env.nextEvent, meta.apply(
     function ()
-        gvt.setEnvironment(env)
 
         -- REACTORS
 
@@ -147,19 +146,19 @@ gvt.loop(meta.apply(
         local s  = S(3)
         local ss = S(3)
         lequal(s, ss)
-        await(0.5)
-        fnear(s(), 1.5)
+        await(500)
+        fnear(s(), 1500)
         local s1 = s + 1
         llt(s, s1)
         local d1 = D(s1)
         local d2 = D(10000)
-        await(0.1) -- para ter derivada
-        await(0.1) -- para ter derivada
-        await(0.1) -- para ter derivada
+        await(100) -- para ter derivada
+        await(100) -- para ter derivada
+        await(100) -- para ter derivada
         lnear(d1, 3)
         lequal(d2, 0)
-        await(1.2)
-        fnear(s(), 6)
+        await(1200)
+        fnear(s(), 6000)
 
         -- OO
         local t = meta.new({}, nil, true)
@@ -178,9 +177,9 @@ gvt.loop(meta.apply(
 
         local _s = S(10)
         local _d = D(_s)
-        await(5)
+        await(5000)
         await(0)
-        assert(_s() >= 50 and _s() <= 51)
+        assert(_s() >= 50000 and _s() <= 51000)
         assert(_d() == 10)
 
         -- COND
@@ -189,10 +188,10 @@ gvt.loop(meta.apply(
         local x = false
         local s = S(1)
         gvt.spawn(function()
-            gvt.await(0.5)
+            gvt.await(500)
             x = true
         end)
-        gvt.await(cond(lt(1,s)))
+        gvt.await(cond(lt(1000,s)))
         assert(x)
     end))
 

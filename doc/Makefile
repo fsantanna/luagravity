@@ -16,5 +16,5 @@ meta_api:
 	markdown meta_api.txt > _meta_api.html
 
 upload:
-	scp doc.css index.html meta.html *.png lua.gif \
-		francisco@www.lua.inf.puc-rio.br:/opt/share/www/luagravity/
+	scp doc.css index.html meta.html l.gif *.png luagravity.png \
+		francisco@www.lua.inf.puc-rio.br:/home/francisco/public_html/luagravity/

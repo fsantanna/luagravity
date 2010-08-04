@@ -1,6 +1,13 @@
+LuaGravity 0.6
+==============
+^ Several changes in the API.
++ `deactivate` and `reactivate` functionality.
++ Support for multiple LuaGravity applications in the same process.
++ Support for the *step execution model*.
+
 LuaGravity 0.5.1
 ================
-+ The simple environment.
++ The `simple` environment.
 
 LuaGravity 0.5
 ==============

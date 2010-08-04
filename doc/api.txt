@@ -6,7 +6,31 @@ API
 
 <tr>
 <td><code><big><strong>
-<a href="#api_create">reactor = luagravity.create (name, obj, inst, body)</a>
+<a href="#api_start">reactor = luagravity.start (app, param)</a>
+</strong></big></code>
+<br/>
+Starts the main reactor representing the application.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_step">luagravity.step (app, evt, param)</a>
+</strong></big></code>
+<br/>
+Performs an execution step in the application with the given event.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_loop">luagravity.loop (nextEvent, app)</a>
+</strong></big></code>
+<br/>
+Runs the given application to completion.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_create">reactor = luagravity.create (body, t)</a>
 </strong></big></code>
 <br/>
 Creates a new reactor from a function body.
@@ -17,7 +41,7 @@ Creates a new reactor from a function body.
 <a href="#api_spawn">reactor = luagravity.spawn (reactor, param)</a>
 </strong></big></code>
 <br/>
-Spawns the execution of the given reactor, passing `param` to it.
+Spawns the execution of the given reactor, passing a parameter.
 </tr>
 
 <tr>
@@ -25,12 +49,12 @@ Spawns the execution of the given reactor, passing `param` to it.
 <a href="#api_call">ret = luagravity.call (reactor, param)</a>
 </strong></big></code>
 <br/>
-Executes the given reactor passing `param` to it and awaits its termination.
+Executes the given reactor passing a parameter, awaiting its termination.
 </tr>
 
 <tr>
 <td><code><big><strong>
-<a href="#api_stop">luagravity.stop (reactor)</a>
+<a href="#api_kill">luagravity.kill (reactor)</a>
 </strong></big></code>
 <br/>
 Terminates the execution of the given reactor, cancelling it.
@@ -41,7 +65,7 @@ Terminates the execution of the given reactor, cancelling it.
 <a href="#api_link">luagravity.link (src, dst)</a>
 </strong></big></code>
 <br/>
-Creates a link between `src` and `dst`.
+Creates a link between <code>src</code> and <code>dst</code>.
 </tr>
 
 <tr>
@@ -49,7 +73,7 @@ Creates a link between `src` and `dst`.
 <a href="#api_unlink">luagravity.unlink (src, dst)</a>
 </strong></big></code>
 <br/>
-Breaks the link between `src` and `dst`.
+Breaks the link between <code>src</code> and <code>dst</code>.
 </tr>
 
 <tr>
@@ -58,6 +82,22 @@ Breaks the link between `src` and `dst`.
 </strong></big></code>
 <br/>
 Makes the running reactor await for any condition passed as parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_deactivate">luagravity.deactivate (reactor)</a>
+</strong></big></code>
+<br/>
+Deactivates the awaiting reactor passed as parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_reactivate">luagravity.reactivate (reactor)</a>
+</strong></big></code>
+<br/>
+Reactivates the reactor passed as parameter.
 </tr>
 
 <tr>
@@ -71,11 +111,104 @@ Terminates the running reactor, cancelling it.
 
 </table>
 
+<!------------------------------------------------------------------------>
+
+<a name="api_start"/>
 <hr/>
 
-<a name="api_create"/>
 <big>
-    `reactor = luagravity.create (name, obj, inst, body)`
+    `reactor = luagravity.start (app, param)`
+</big>
+
+Starts the main reactor representing the application.
+
+Should be used in conjunction with [`luagravity.step`](#api_step) in the [*step 
+execution model*](#section_environment).
+
+Parameters:
+
+* `app`:   [`reactor`|`function`] The main reactor to be executed.
+            Can also be a function, which is transformed into a reactor.
+* `param`: [`any`] An optional parameter passed to the application.
+
+Returns:
+
+* `app`: [`reactor`] A reference to the application.
+
+<!------------------------------------------------------------------------>
+
+<a name="api_step"/>
+<hr/>
+
+<big>
+    `luagravity.step (app, evt, param)`
+</big>
+
+Performs an execution step in the application with the given event.
+
+A step returns once the full propagation chain reacting to the issued event 
+terminates, what should take an infinitesimal time.
+
+Should be used in conjunction with [`luagravity.start`](#api_start) in the 
+[*step execution model*](#section_environment).
+
+Parameters:
+
+* `app`:   [`reactor`] The application to step.
+* `event`: [`string`]  The event to be triggered.
+* `param`: [`any`]     The value associated to the event.
+
+Returns:
+
+* *nothing*
+
+<!------------------------------------------------------------------------>
+
+<a name="api_loop"/>
+<hr/>
+
+<big>
+    `luagravity.loop (nextEvent, app)`
+</big>
+
+Runs the given application to completion.
+
+It is equivalent to the following code:
+
+    function luagravity.loop (nextEvent, app, param)
+        app = luagravity.start(app, param)
+        while app.state ~= 'ready' do
+            local evt, param = nextEvent()
+            luagravity.step(app, evt, param)
+        end
+    end
+
+The function `nextEvent` blocks until a new event is returned from the 
+environment.
+
+The call to `loop` only returns after the application terminates.
+See also the  [*loop execution model*](#section_environment).
+
+Parameters:
+
+* `nextEvent`: [`function`] An environment dependent function that requests
+                            new events.
+* `app`:   [`reactor`|`function`] The main reactor to be executed.
+            Can also be a function, which is transformed into a reactor.
+* `param`: [`any`] An optional parameter passed to the application.
+
+
+Returns:
+
+* *nothing*
+
+<!------------------------------------------------------------------------>
+
+<a name="api_create"/>
+<hr/>
+
+<big>
+    `reactor = luagravity.create (body, t)`
 </big>
 
 Creates a new reactor from a function body.
@@ -86,16 +219,21 @@ The reactor body must follow the signature:
 
 Parameters:
 
-* `name`: `[string]` Reactor's name (for debugging purposes).
-* `obj`: `[table]` If given, every time the reactor is called it receives `obj` 
-                   as the first parameter.
-* `inst`: `[boolean]` Sets whether the reactor is instantaneous, that is, if 
-                      its body contains no `await` calls.
-* `body`: `[function]` The actual code to be executed by the reactor.
+* `body`: [`function`] The actual code to be executed by the reactor.
+* `t`:    [`table`]    An optional table supporting the following fields: 
+    <ul>
+        <li>`name`: [`string`] reactor's name (for debugging purposes only).
+        <li>`obj`:  [`table`] if set, the reactor body is always called with 
+                    `obj` as its first parameter.
+        <li>`inst`: [`boolean`] sets whether the reactor is instantaneous, that 
+                    is, if its body contains no `await` calls.
+                    In this case LuaGravity performs an important optimization,
+                    not creating a coroutine to run it.
+    </ul>
 
 Returns:
 
-* `ref`: [reactor] A reference to the created reactor.
+* `ref`: [`reactor`] A reference to the created reactor.
 
 <small>
 *The `inst` parameter allows an important optimization for reactors that do not 
@@ -103,52 +241,60 @@ await on their bodies. However, for reactors that do await, this parameter must
 be passed `false`.*
 </small>
 
-<hr/>
+<!------------------------------------------------------------------------>
 
 <a name="api_spawn"/>
+<hr/>
+
 <big>
     `reactor = luagravity.spawn (reactor, param)`
 </big>
 
-Spawns the execution of the given reactor, passing `param` to it.
+Spawns the execution of the given reactor, passing a parameter.
+
 The spawned reactor runs concurrently with the continuation of the running 
 reactor.
 
 Parameters:
 
-* `reactor`: [reactor] Reactor to execute. May also be an anonymous function 
+* `reactor`: [`reactor`] Reactor to execute. May also be an anonymous function 
                        that is automatically transformed into a reactor.
-* `param`: [any] Parameter to pass to the reactor.
+* `param`: [`any`] Parameter to pass to the reactor.
 
 Returns:
 
-* `reactor`: [reactor] A reference to the spawned reactor.
+* `reactor`: [`reactor`] A reference to the spawned reactor.
 
-<hr/>
+<!------------------------------------------------------------------------>
 
 <a name="api_call"/>
+<hr/>
+
 <big>
     `ret = luagravity.call (reactor, param)`
 </big>
 
-Executes the given reactor passing `param` to it and awaits its termination.
+Executes the given reactor passing a parameter, awaiting its termination.
+
 The callee reactor continues its execution only after the called reactor and 
 all reactions to it terminate.
 
 Parameters:
 
-* `reactor`: [reactor] Reactor to execute.
-* `param`: [any] Parameter to pass to the reactor.
+* `reactor`: [`reactor`] Reactor to execute.
+* `param`: [`any`] Parameter to pass to the reactor.
 
 Returns:
 
-* `ret`: [any] The return value of the called reactor.
+* `ret`: [`any`] The return value of the called reactor.
 
+<!------------------------------------------------------------------------>
+
+<a name="api_kill"/>
 <hr/>
 
-<a name="api_stop"/>
 <big>
-    `luagravity.stop (reactor)`
+    `luagravity.kill (reactor)`
 </big>
 
 Terminates the execution of the given (awaiting) reactor, cancelling it.
@@ -157,15 +303,17 @@ Reactors linked to (or awaiting) it are not triggered.
 
 Parameters:
 
-* `reactor`: [reactor] Reactor to stop.
+* `reactor`: [`reactor`] Reactor to kill.
 
 Returns:
 
 * *nothing*
 
-<hr/>
+<!------------------------------------------------------------------------>
 
 <a name="api_link"/>
+<hr/>
+
 <big>
     `luagravity.link (src, dst)`
 </big>
@@ -175,7 +323,7 @@ Creates a link between `src` and `dst`.
 A link determines that the termination/post of the reactor/string event `src` 
 triggers the reactor `dst`.
 The returned value of `src` is passed to the body of `dst`.
-[Cancelled](#api_cancel) or [stopped](#api_stop) reactors do not trigger 
+[Cancelled](#api_cancel) or [killed](#api_kill) reactors do not trigger 
 reactors linked to it.
 
 If a source reactor links to several destiny reactors, its termination makes 
@@ -183,17 +331,19 @@ all of them to run concurrently.
 
 Parameters:
 
-* `src`: [reactor|string] Source reactor or string event.
-* `dst`: [reactor] Destiny reactor. May also be an anonymous function that is 
-                   automatically transformed into a reactor.
+* `src`: [`reactor`|string`] Source reactor or string event.
+* `dst`: [`reactor`] Destiny reactor. May also be an anonymous function that is 
+                   automatically transformed into an instantaneous reactor.
 
 Returns:
 
 * *nothing*
 
-<hr/>
+<!------------------------------------------------------------------------>
 
 <a name="api_unlink"/>
+<hr/>
+
 <big>
     `luagravity.unlink (src, dst)`
 </big>
@@ -202,16 +352,20 @@ Breaks the link between `src` and `dst`.
 
 Parameters:
 
-* `src`: [reactor|string] Source reactor or string event.
-* `dst`: [reactor] Destiny reactor.
+* `src`: [`reactor`|`string`] Source reactor or string event.
+* `dst`: [`reactor`] Destiny reactor.
 
 Returns:
 
 * *nothing*
 
-<hr/>
+<!------------------------------------------------------------------------>
 
 <a name="api_await"/>
+<hr/>
+
+<!-- TODO: 0, -1 -->
+
 <big>
     `ret = luagravity.await (p1, p2, ...)`
 </big>
@@ -222,22 +376,70 @@ Further actions in the running reactor are not executed until it is awakened.
 Conditions might be the termination of reactors or [posting](#api_post) of 
 string events.
 A number may also be passed as parameter to make the running reactor await this 
-number of seconds.
+number of milliseconds.
 
 The call returns the return value of the reactor responsible for awaking the 
 suspended reactor.
 
 Parameters:
 
-* `...`: [reactors|strings|numbers] Conditions to await.
+* `...`: [`reactors`|`strings`|`numbers`] Conditions to await.
 
 Returns:
 
-* `ret`: [any] The return value of the satisfied condition.
+* `ret`: [`any`] The return value of the satisfied condition.
 
+<!------------------------------------------------------------------------>
+
+<a name="api_deactivate"/>
 <hr/>
 
+<big>
+    `luagravity.deactivate (reactor)`
+</big>
+
+Deactivates the awaiting reactor passed as parameter.
+
+A deactivated reactor is not resumed when the event it is awaiting is 
+triggered.
+If the reactor is awaiting on Timers associated to deactivated reactors are 
+paused.
+
+Parameters:
+
+* `reactor`: [`reactor`] The reactor to deactivate.
+
+Returns:
+
+* *nothing*
+
+<!------------------------------------------------------------------------>
+
+<a name="api_reactivate"/>
+<hr/>
+
+<big>
+    `luagravity.reactivate (reactor)`
+</big>
+
+Reactivates the deactivated reactor passed as parameter.
+
+Makes the running reactor await for any condition passed as parameter.
+Further actions in the running reactor are not executed until it is awakened.
+
+Parameters:
+
+* `reactor`: [`reactor`] The reactor to reactivate.
+
+Returns:
+
+* *nothing*
+
+<!------------------------------------------------------------------------>
+
 <a name="api_cancel"/>
+<hr/>
+
 <big>
     `return luagravity.cancel`
 </big>
