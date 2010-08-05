@@ -6,19 +6,27 @@ API
 
 <tr>
 <td><code><big><strong>
-<a href="#api_new">t = meta.new (obj)</a>
+<a href="#api_new">newt = meta.new (t, env, isObj)</a>
 </strong></big></code>
 <br/>
-Creates a new table in which the LuaGravity extensions can be used.
+Creates a new table that supports the LuaGravity extensions.
 </tr>
 
 <tr>
 <td><code><big><strong>
-<a href="#api_global">fun = meta.global (fun)</a>
+<a href="#api_apply">f, newt = meta.apply (f, env)</a>
 </strong></big></code>
 <br/>
-Changes the global environment of a function to reflect the semantic extensions 
-of LuaGravity.
+Changes the environment of the given function to support the LuaGravity 
+extensions.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_dofile">ret = meta.dofile (filename, env)</a>
+</strong></big></code>
+<br/>
+Executes `filename` with support to the LuaGravity extensions.
 </tr>
 
 </table>
@@ -27,32 +35,37 @@ of LuaGravity.
 
 <a name="api_new"/>
 <big>
-    `t = meta.new (obj)`
+    `newt = meta.new (t, env, isObj)`
 </big>
 
-Creates a new table in which the LuaGravity extensions can be used.
+Creates a new table that supports the LuaGravity extensions.
+The returned table looks at `env` for non-existent fields in the returned 
+table.
+
+If `isObj` is true, every reactor defined inside the returned table receives 
+itself as the first parameter.
 
 Parameters:
 
-* `obj`: `[boolean]` Whether the returned table should behave as an object or 
-                     not.
+* `t`:   `[table]` If given, its values are copied to `newt`.
+* `env`: `[table]` If given, the returned table looks at it for non-existent
+                   fields. Defaults to the current environment.
+* `isObj`: `[boolean]` Whether the returned table should behave as an object or 
+                       not. Defaults to `false`.
 
 Returns:
 
-* `t`: [table] A reference to the created table.
-
-If `obj` is true, every reactor defined inside `t` will receive `t` as its 
-first parameter.
+* `newt`: [table] A reference to the created table.
 
 <hr/>
 
-<a name="api_global"/>
+<a name="api_apply"/>
 <big>
-    `fun = meta.global (fun)`
+    `f, newt = meta.apply (f, env)`
 </big>
 
-Changes the global environment of a function to reflect the semantic extensions 
-of LuaGravity.
+Changes the environment of the given function to support the LuaGravity 
+extensions.
 
 The environment is also extended with the following primitives:
 
@@ -62,10 +75,31 @@ The environment is also extended with the following primitives:
 
 Parameters:
 
-* `fun`: [function] The function that will have the environment modified.
-                    If no function is given, it is assumed the function that 
-                    called `meta.global`.
+* `f`: [function] The function to apply the new environment.
+                  If no function is given, it is assumed the function that 
+                  called `meta.apply`.
+* `env`: [table]  Behave as in [meta.new](#api_new).
 
 Returns:
 
-* `fun`: [function] The same function passed as parameter.
+* `f`:    [function] The same function passed as parameter.
+* `newt`: [table]    The new environment for `f`.
+
+<hr/>
+
+<a name="api_dofile"/>
+<big>
+    `ret = meta.dofile (filename, env)`
+</big>
+
+Executes `filename` with support to the LuaGravity extensions.
+`filename` runs in the new environment extended with `env`.
+
+Parameters:
+
+* `filename`: [string] The filename to execute.
+* `env`:      [table]  Behave as in [meta.new](#api_new).
+
+Returns:
+
+* `ret`: [any] The value returned by executing the file, or its environment.

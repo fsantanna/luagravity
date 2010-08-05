@@ -49,10 +49,6 @@ local notcond = function (e)
     return expr.condition(e)._false
 end
 
-function copy (to, from)
-    return setfenv(to, getfenv(from or 2))
-end
-
 function apply (f, env)
     env = env or 1
     local t = new(nil, env+1, false)
@@ -68,9 +64,9 @@ function apply (f, env)
     t.deactivate = gvt.deactivate
     t.reactivate = gvt.reactivate
 
-    t.delay   = expr.delay
     t.cond    = cond
     t.notcond = notcond
+    t.delay   = expr.delay
     t.L       = expr.lift
     t.S       = expr.integral
     t.D       = expr.derivative
@@ -98,15 +94,15 @@ function dofile (filename, env)
     return f() or getfenv(f)
 end
 
-function new (old, env, isObj)
+function new (t, env, isObj)
     env = env or 1
     local t = {}
     t.__env  = getfenv(env+1) or false
     t.__obj  = isObj
     t.__vars = {}
     setmetatable(t, mt_t)
-    if old then
-        for k, v in pairs(old) do
+    if t then
+        for k, v in pairs(t) do
             t[k] = v
         end
     end
