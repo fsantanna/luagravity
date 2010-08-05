@@ -193,6 +193,20 @@ gvt.loop(env.nextEvent, meta.apply(
         end)
         gvt.await(cond(lt(1000,s)))
         assert(x)
+
+        -- ACCUM
+        _a = 1
+        _b = 2
+        _c = 3
+        local t = { _a, _b, _c }
+        _all = 0
+        for i, _v in ipairs(t) do
+            _all = _all.src + _v
+        end
+        assert(_all() == 6)
+        _a = 2
+        _b = 4
+        assert(_all() == 9)
     end))
 
 print '===> OK'
