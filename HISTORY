@@ -1,5 +1,7 @@
 LuaGravity 0.6
 ==============
++ meta.len, meta.ipairs, meta.pairs (not documented) (0.6.1)
++ meta.NEQ (0.6.1)
 ^ Several changes in the API.
 + `deactivate` and `reactivate` functionality.
 + Support for multiple LuaGravity applications in the same process.

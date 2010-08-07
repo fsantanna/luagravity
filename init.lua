@@ -1,10 +1,9 @@
 --[[
 -- TODO:
+-- * Document meta.len/ipairs/pairs
 -- * Rewrite the debugging system.
 -- * Rewrite the topological order algorithm.
 -- * Test rsrc as last parameter of triggers.
--- * IDX: doc and tests
--- * meta.new, env, nova api, testes, doc
 -- * await(p) -- em vez de -- p() / TESTES / DOC
 -- * tirar o timer daqui
 -- * gvt / rct.*

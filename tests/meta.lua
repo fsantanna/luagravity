@@ -34,6 +34,24 @@ gvt.loop(env.nextEvent, meta.apply(
         _f2()
         assert(tot == 15)
 
+        -- meta.new
+        do
+            local t = meta.new{1,2,3,_a=1}
+            assert(t._a() == 1)
+            assert(meta.len(t) == 3)
+            local len = 0
+            for k,v in meta.pairs(t) do len 
+            = len+1 end
+            assert(len == 4)
+
+            local t2 = meta.new(nil, t, false)
+            assert(t2[2] == 2)
+            t._a = 1
+            assert(t2._a() == 1)
+            t._a = 2
+            assert(t2._a() == 2)
+        end
+
         -- BEHAVIORS
 
         _a = 1
@@ -76,8 +94,8 @@ gvt.loop(env.nextEvent, meta.apply(
         end
         local llt = L(flt)
 
+--[[
         -- IDX
-        --[[
         do
             _k1 = 1
             local t1 = { 1, 2 }
@@ -95,7 +113,7 @@ gvt.loop(env.nextEvent, meta.apply(
             _k1 = 1
             assert(_v2()() == 1)
         end
-        ]]
+]]
 
         -- GLITCHES
 

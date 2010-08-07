@@ -101,6 +101,7 @@ environment:
 <tr> <th>Lua</th>   <th>LuaGravity</th> <th>Example</th>       </tr>
 <tr> <td> # </td>   <td> LEN </td>      <td> LEN(t)      </td> </tr>
 <tr> <td> == </td>  <td> EQ  </td>      <td> EQ(_a, 1)   </td> </tr>
+<tr> <td> ~= </td>  <td> NEQ </td>      <td> NEQ(_a, 1)  </td> </tr>
 <tr> <td> < </td>   <td> LT  </td>      <td> LT(_a, 10)  </td> </tr>
 <tr> <td> <= </td>  <td> LE  </td>      <td> LE(_a, _b)  </td> </tr>
 <tr> <td> > </td>   <td> GT  </td>      <td> GT(a, _a)   </td> </tr>
