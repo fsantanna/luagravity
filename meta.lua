@@ -1,8 +1,8 @@
+local _G   = _G
 local gvt  = require 'luagravity'
 local expr = require 'luagravity.expr'
-
-local rawset, setmetatable, type, setfenv, getfenv, _pairs, _ipairs, select, assert, print, loadfile =
-      rawset, setmetatable, type, setfenv, getfenv,  pairs,  ipairs, select, assert, print, loadfile
+local rawset, setmetatable, type, setfenv, getfenv, _pairs, _ipairs, select, assert, loadfile =
+      rawset, setmetatable, type, setfenv, getfenv,  pairs,  ipairs, select, assert, loadfile
 local s_sub = string.sub
 
 module (...)

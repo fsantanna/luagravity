@@ -424,9 +424,6 @@ Returns:
 
 Reactivates the deactivated reactor passed as parameter.
 
-Makes the running reactor await for any condition passed as parameter.
-Further actions in the running reactor are not executed until it is awakened.
-
 Parameters:
 
 * `reactor`: [`reactor`] The reactor to reactivate.

@@ -134,7 +134,7 @@ gvt.loop(env.nextEvent,
         assert(d.value == nil)
         assert(b.value == nil)
         gvt.await(200)
-        assert(d.value == 0)
+        assert(d.value == 0, d.value)
         assert(b.value == 0)
         gvt.await(100)
         assert(d.value == 2, d.value)
