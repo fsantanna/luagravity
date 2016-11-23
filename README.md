@@ -9,7 +9,7 @@ former having an imperative style, the latter being functional.
 Documentation
 =============
 
-Documentation can be found on `doc/index.html`.
+<http://fsantanna.github.io/luagravity/>
 
 Installation
 ============
