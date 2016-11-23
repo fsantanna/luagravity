@@ -1,0 +1,1019 @@
+<html>
+<head>
+    <title>LuaGravity</title>
+	<link rel="stylesheet" href="doc.css" type="text/css"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-17746978-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+</head>
+<body>
+<div id="container">
+<div id="product">
+	<p/>
+	<div id="product_logo">
+        <img alt="Lua logo" src="luagravity.png"/>
+    </div>
+    <div id="product_name"><big><strong>LuaGravity</strong></big></div>
+	<div id="product_description">  </div>
+</div> <!-- id="product" -->
+<div id="main">
+<div id="navigation">
+
+<ul>
+    <li><a href="#section_intro"> Introduction </a></li>
+    <li><a href="#section_reactivity"> Reactivity </a></li>
+    <li><a href="#section_scheduler"> The Scheduler </a></li>
+    <li><a href="#section_spawn"> Spawning Reactors </a></li>
+    <li><a href="#section_determinism"> (Non)Determinism </a></li>
+    <li><a href="#section_environment"> Environments </a>
+    <ul>
+        <li><a href="#section_environment_list"> Supported </a></li>
+    </ul>
+    </li>
+    <li><a href="#section_meta"> The Meta Language </a></li>
+    <li><a href="#section_download"> Download &amp; Install </a></li>
+    <li><a href="#section_acknowledgements"> Acknowledgements </a></li>
+    <li><a href="#section_license"> License </a></li>
+    <li><br></li>
+    <li><a href="#section_api"> API </a>
+        <li><a href="#api_start"> <tt>luagravity.start</tt> </a></li>
+        <li><a href="#api_step"> <tt>luagravity.step</tt> </a></li>
+        <li><a href="#api_loop"> <tt>luagravity.loop</tt> </a></li>
+        <li><a href="#api_create"> <tt>luagravity.create</tt> </a></li>
+        <li><a href="#api_spawn"> <tt>luagravity.spawn</tt> </a></li>
+        <li><a href="#api_call"> <tt>luagravity.call</tt> </a></li>
+        <li><a href="#api_kill"> <tt>luagravity.kill</tt> </a></li>
+        <li><a href="#api_link"> <tt>luagravity.link</tt> </a></li>
+        <li><a href="#api_unlink"> <tt>luagravity.unlink</tt> </a></li>
+        <li><a href="#api_await"> <tt>luagravity.await</tt> </a></li>
+        <li><a href="#api_cancel"> <tt>luagravity.cancel</tt> </a></li>
+        <li><a href="#api_deactivate"> <tt>luagravity.deactivate</tt> </a></li>
+        <li><a href="#api_reactivate"> <tt>luagravity.reactivate</tt> </a></li>
+    </li>
+</ul>
+</div> <!-- id="navigation" -->
+<div id="content">
+<p/>
+
+<!--
+ through the primitives `spawn` and `call`.
+The `call(r)` primitive schedules the reactor passed as parameter and awaits 
+its termination.
+The callee reactor continues its execution only after the called reactor and 
+all reactions to it terminate.
+The following code shows this behavior with the last `assert` statement:
+
+    local counter = 0
+    luagravity.link(r, function() counter=counter+1 end)
+    luagravity.call(r) -- awaits `r` and the increment to the counter
+    assert(counter == 1)
+-->
+
+<p><a name="section_intro"/></p>
+
+<h1>Introduction</h1>
+
+<p>LuaGravity is a reactive language that implements the synchronous approach for 
+concurrency.
+It is roughly based on Esterel and FrTime, two synchronous reactive languages, 
+the former having an imperative style, the latter being functional.</p>
+
+<p>For an introductory video about LuaGravity, click 
+<a href="http://thesynchronousblog.wordpress.com/lua-workshop09-video/">here</a>.</p>
+
+<p>LuaGravity is implemented as a set of runtime extensions to the Lua language.
+It provides a pure Lua <a href="#section_api">API library</a> with the reactive kernel, 
+and also an extra module with the <a href="#section_meta">meta language</a> that is less 
+verbose to use, and is built entirely with the kernel API.</p>
+
+<p>The key concept of LuaGravity is its execution unit, known as <em>reactor</em>.
+Reactors are comparable to callbacks of <em>event-driven programming</em>, holding the 
+following similarities:</p>
+
+<ul>
+<li>Reactors run implicitly, always as a consequence of a change in the 
+environment.</li>
+<li>The execution of reactors is atomic and conceptually instantaneous.</li>
+</ul>
+
+<p>However, reactors differ from callbacks in the following characteristics:</p>
+
+<ul>
+<li>Reactors are themselves events, and can be linked to each other so that a 
+reactor termination triggers its dependent reactors.
+This eliminates the need to explicitly declare and post events.
+Conventional events, represented as strings, can still be used when 
+appropriate.</li>
+<li>Reactors are allowed to suspend in the middle of their execution (keeping 
+local state) to wait for other reactors to terminate.
+This feature permits sequential execution for reactors, while keeping their 
+reactive nature.</li>
+</ul>
+
+<p>Besides standard Lua statements, a reactor can perform the following 
+operations:</p>
+
+<ul>
+<li>Create new reactors.</li>
+<li>Spawn and kill other reactors.</li>
+<li>Activate and deactivate other reactors.</li>
+<li>Create and destroy links between reactors.</li>
+<li>Await on conditions.</li>
+<li>Generate string events.</li>
+</ul>
+
+<p><font size="-1">
+<em>(For experienced programmers: Reactors are abstractions built on top of Lua 
+coroutines that count with a specialized scheduler responsible for managing the 
+dependencies between them.)</em>
+</font></p>
+
+<p><a name="section_reactivity"/></p>
+
+<h1>Reactivity Mechanisms</h1>
+
+<p>The <code>link</code> and <code>await</code> primitives are the supported reactivity mechanisms of 
+LuaGravity.</p>
+
+<p>Follows an introductory example illustrating their use:</p>
+
+<p><img src="ex1.png" width="250" vspace="50" hspace="50" align="right"/></p>
+
+<pre><code>rA = luagravity.create(
+    function ()
+        print 'a1'     -- sub-node (1)
+        luagravity.await(rB)
+        print 'a2'     -- sub-node (2)
+    end)
+
+rB = luagravity.create(
+    function ()
+        print 'b'
+    end)
+
+luagravity.link('eA', rA)
+</code></pre>
+
+<p>We define two reactors <code>rA</code> and <code>rB</code>, linking the string event <code>'eA'</code> to <code>rA</code>.
+This way, <code>rA</code> executes and prints <code>'a1'</code> whenever <code>'eA'</code> is triggered, due to 
+the link between them.
+Then, <code>rA</code> awaits the execution of <code>rB</code>.
+When <code>rB</code> is executed somewhere, it prints <code>'b'</code> and awakes <code>rA</code>, which now 
+prints <code>'a2'</code>.</p>
+
+<p>The call to <code>await</code> saves the continuation of the running reactor before 
+suspending it, keeping the locals and point of suspension to be restored on 
+resume.
+The graph is commented <a href="#section_scheduler">further</a>.
+<font size="-1">
+<em>(For experienced programmers: The <code>await</code> call yields control from the running 
+reactor back to the scheduler, telling what should resume itself later.)</em>
+</font></p>
+
+<p>As the example shows, string events or reactors can be used as conditions in 
+links and await calls.</p>
+
+<p>The primitive <code>post</code> is used to generate string events:</p>
+
+<pre><code>luagravity.link('key.A', function(key) print(key..' '..pressed))
+luagravity.post('key.A')
+-- yields "key.A pressed"
+</code></pre>
+
+<p>Reactors executes implicitly, as consequence of links; or explicitly, as shown 
+<a href="#section_spawn">further</a>.</p>
+
+<p><a name="section_scheduler"/></p>
+
+<h2>The Reactive Scheduler</h2>
+
+<p>In LuaGravity, a program is a dynamic dependency graph of reactors waiting for 
+external changes to react.
+In the graph, nodes are reactors with dependency relations represented by 
+directed edges connecting them.</p>
+
+<p>The scheduling policy of reactors is determined only by the dependency graph, 
+leading to what we call a reactive scheduler.</p>
+
+<p>Starting from an external stimulus, the scheduler traverses the graph running 
+all dependent reactors until it reaches "leaf" reactors.
+We call this process a full propagation chain, which takes an infinitesimal 
+time to complete.
+A full propagation chain is also our definition for an instant within the 
+notion of discrete time of synchronous languages.</p>
+
+<p>The two reactivity primitives are responsible for populating the dependency 
+graph with respective kinds of edges:</p>
+
+<ul>
+<li>Link edges:
+Created by <code>link(X,Y)</code> calls.
+The edge connects the reactor X (source reactor) to Y (destiny reactor) so 
+that when the source reactor terminates successfully, the destiny reactor 
+is implicitly triggered.</li>
+<li>Await edges:
+Created by <code>await(X)</code> calls.
+The edge connects X (reactor to await) to the continuation of the reactor 
+being suspended.  Await edges are temporary, as the scheduler removes them 
+as soon as the suspended reactor is awakened.</li>
+</ul>
+
+<p>In both cases, the parameter <code>X</code> can also be a string event.</p>
+
+<p>In the dependency graph for introductory example the sub-nodes 1 and 2 
+represent the code chunks of reactor <code>rC</code> separated by the call to <code>await</code>.</p>
+
+<p><a name="section_spawn"/></p>
+
+<h2>Spawning Reactors</h2>
+
+<p>Reactors may be explicitly spawned from inside other reactors.
+The <code>spawn(r)</code> primitive acts like a fork, instantaneously scheduling the 
+reactor passed as parameter and the continuation of the calling reactor to run 
+concurrently.</p>
+
+<p>Follows an example, with corresponding dependency graph, illustrating the use 
+of <code>spawn</code>:</p>
+
+<p><img src="ex2.png" width="250" vspace="50" hspace="50" align="right"/></p>
+
+<pre><code>rA = luagravity.create(
+    function ()
+        print 'a1' -- (A1)
+        luagravity.spawn(rB)
+        print 'a2' -- (A2)
+        luagravity.await(rB)
+        print 'a3' -- (A3)
+    end)
+
+rB = luagravity.create(
+    function ()
+        print 'b1'      -- (B1)
+        luagravity.await(rC)
+        print 'b2'      -- (B2)
+    end)
+
+rC = luagravity.create(
+    function ()
+        print 'c1'
+    end)
+</code></pre>
+
+<p>The execution of reactor <code>rA</code> prints 'a1' and spawns the reactor <code>rB</code> (chunk 
+<em>A1</em>).
+The call to <code>spawn</code> immediately schedules <code>rB</code> and the continuation of <code>rA</code> 
+(chunk <em>A2</em>) to execute concurrently.
+The scheduler chooses non-deterministically which one to execute first.
+When chunk <em>A2</em> is executed, it prints 'a2' and awaits the termination of <code>rB</code>, 
+creating a temporary await edge from <code>rB</code> to the last continuation of <code>rA</code> 
+(chunk <em>A3</em>).
+When <code>rB</code> is spawned, it prints 'b1' and awaits <code>rC</code>, creating the temporary 
+edge from <code>rC</code> to the continuation of <code>rB</code> (chunk <em>B2</em>).
+The execution of <code>rC</code> awakes <code>rB</code>, which, in turn, awakes <code>rA</code>, and both 
+temporary edges are destroyed.</p>
+
+<p><a name="section_determinism"/></p>
+
+<h2>(Non)Determinism</h2>
+
+<p>LuaGravity is single threaded, meaning that any concurrent reactor runs 
+atomically.
+This way, there are no critical regions in programs and, hence, no need for a 
+locking mechanism.</p>
+
+<p>However, the execution order of concurrent reactors is non-deterministic.
+In the example below it is not possible to know which spawned reactor runs 
+first:</p>
+
+<pre><code>a = 0
+luagravity.spawn(function()
+    a = a + 1
+    print(a)   -- prints 1 or 2
+end)
+luagravity.spawn(function()
+    a = a + 1
+    print(a)   -- prints 1 or 2
+end
+luagravity.await(0)
+print(a)       -- prints 2, for sure
+</code></pre>
+
+<!--
+TODO: este exemplo eh deterministico, mas acho que tem alguns ND interessantes
+
+In this other example, by the time `reactorA` is called, one cannot be sure if 
+the spawned reactor had the chance to execute and await `reactorA`.
+
+    luagravity.spawn(function()
+        luagravity.await(reactorA)
+        print 'ok!'
+    end
+    luagravity.call(reactorA)
+-->
+
+<p><a name="section_environment"/></p>
+
+<h2>Environments</h2>
+
+<p>As reactors run as consequence of changes (input events) in the environment,
+LuaGravity applications must have access to such events.
+Each environment, which is defined independently from LuaGravity, must document 
+its available input events and also output primitives.</p>
+
+<p>There are two supported execution models for LuaGravity applications:</p>
+
+<p>In the <em>loop execution model</em>, LuaGravity takes control of the environment, 
+requesting new events from it whenever the applications becomes idle.
+The <code>luagravity.loop</code> call receives the application (main reactor) to run, and 
+a function provided by the environment to requests new events.
+<code>luagravity.loop</code> only returns when the application terminates.</p>
+
+<p>The following example uses the <em>ldirectfb</em> environment, which follows the <em>loop 
+execution model</em>:</p>
+
+<pre><code>-- initialization code
+local gvt = require 'luagravity'
+local ldirectfb = require 'luagravity.env.ldirectfb'
+
+-- event loop
+gvt.loop(ldirectfb.nextEvent,
+    function ()
+        -- application code
+        ...
+        gvt.await('key.press.ESCAPE')
+        ...
+    end)
+</code></pre>
+
+<p>In the <em>step execution model</em>, the environment takes control of LuaGravity, 
+issuing steps in the application whenever new events are available.
+The <code>luagravity.start</code> call receives the application to run, starts it, and 
+returns an opaque identifier to be used by the <code>step</code> function.
+The <code>luagravity.step</code> call receives the application identifier, the event to 
+trigger, and a value associated with the event.
+A step returns once the full propagation chain reacting to the issued event 
+terminates, what should take an infinitesimal time.</p>
+
+<p>Follows how the <code>luagravity.loop</code> call can be implemented on top of the <em>step 
+model</em>:</p>
+
+<pre><code>function luagravity.loop (nextEvent, app)
+    app = luagravity.start(app)
+    while app.state ~= 'ready' do
+        local evt, param = nextEvent()
+        luagravity.step(app, evt, param)
+    end
+end
+</code></pre>
+
+<p>The <em>step model</em> permits that several LuaGravity applications coexist, as it 
+does not block.</p>
+
+<p><a name="section_environment_list"/></p>
+
+<h3>Known Environments</h3>
+
+<p>We try to separate LuaGravity itself from the environments in which it is used.
+This decoupling eases the adaptation of the language to different realms.
+For instance, when programming games, the environment typically provides input 
+events for key presses and collisions between sprites, and ways to draw 
+graphical primitives on screen.
+In a robotics environment, input comes from reading sensors, and output from 
+commanding on actuators; and so on.</p>
+
+<p>Another reason to separate the language kernel from environments is that 
+LuaGravity is implemented in pure Lua, while environments usually require a C 
+module to interact with the operating system and, hence, are not portable.</p>
+
+<!--
+Follow a list of supported environments (that we know) for LuaGravity:
+
+* [Reactive Server Pages](../rsp/)
+
+* [ldirectfb](../dfb/)
+
+The `ldirectfb` library used in the example is a typical desktop environment 
+supporting keyboard and mouse events, and also drawing graphics on screen.
+An environment must be documented to expose which input events (and also output 
+primitives) are available.
+
+Other examples of Lua libraries that could be integrated with LuaGravity to 
+provide additional environments are the LÖVE and Scrupp game engines, IUP and 
+wxWidgets GUI systems, eLua and pbLua embedded platforms, and also LuaSocket, 
+to mention some.
+
+We do not discuss here how to *implement* environments, please check the file 
+`env/ldirectfb.lua` in the distribution as an example.
+-->
+
+<p><a name="section_meta"/></p>
+
+<h1>The Meta Language</h1>
+
+<p>We chose to write the LuaGravity kernel as an API supporting every possible 
+mechanism in the language.
+Above it, we provide a layer extending Lua with the semantics of LuaGravity.
+This approach follows the usual idea in the Lua world of separating <em>mechanism</em> 
+from <em>policy</em>.</p>
+
+<p>We recommend programmers to use the <a href="meta.html"><code>meta</code> module</a> instead of the 
+raw API.</p>
+
+<p><a name="section_download"/></p>
+
+<h1>Download &amp; Install</h1>
+
+<p>The current version of LuaGravity is 0.6.1 and can be downloaded 
+<a href="luagravity-0.6.1.tgz">here</a>.</p>
+
+<p>I also keep a github repository <a href="http://github.com/fsantanna/luagravity">here</a>.</p>
+
+<p>Unpack LuaGravity to somewhere in your LUA_PATH, and run the tests:</p>
+
+<pre><code># cd /somewhere_in_lua_path
+# tar xvzf luagravity-0.6.1.tgz
+# mv luagravity-0.6.1/ luagravity/
+
+# cd luagravity/tests
+# make
+</code></pre>
+
+<!--
+You might also need the Lua binding to DirectFB that can be downloaded 
+[here](ldirectfb-0.1.tgz):
+
+    # tar xvzf ldirectfb-0.1.tgz
+    # cd lidirectfb-0.1/
+    # make
+    # cp ldirectfb.so /somewhere_in_lua_path
+
+The following examples need DirectFB:
+
+    # cd ../examples
+    # lua sky.lua
+    # lua walker.lua
+    # lua game.lua
+-->
+
+<p><a name="section_acknowledgements"/></p>
+
+<h1>Acknowledgements</h1>
+
+<p>This work is the result of my period at PUC-Rio as an MSc student supervised by 
+Prof. Roberto Ierusalimschy.</p>
+
+<ul>
+<li>The MSc dissertation can be found 
+<a href="http://thesynchronousblog.files.wordpress.com/2009/06/luagravity_msc.pdf">here</a>.</li>
+<li>The academic paper presented at SBLP'09 can be found
+<a href="http://thesynchronousblog.files.wordpress.com/2009/08/luagravity_sblp.pdf">here</a>.</li>
+</ul>
+
+<p>I also maintain a weblog on reactive languages at 
+<a href="http://thesynchronousblog.wordpress.com/">http://thesynchronousblog.wordpress.com/</a>.</p>
+
+<p>Please contact me if you are using LuaGravity.
+Also, feel free to ask me for help on how to implement new environments for the 
+language.</p>
+
+<p><big><a href="../">Francisco Sant'Anna</a> (<img src="l.gif" alt="" title="" />)</big></p>
+
+<p><a name="section_license"/></p>
+
+<h1>License</h1>
+
+<p>LuaGravity is free software: it can be used for any purpose, including 
+commercial purposes, at absolutely no cost.
+No paperwork, no royalties, no GNU-like "copyleft" restrictions, either.
+LuaGravity is certified Open Source software.
+Its licenses are compatible with GPL.</p>
+
+<p>The MIT License</p>
+
+<p>Copyright (c) 2009-2010 Francisco Sant'Anna</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</p>
+<p><a name="section_api"/></p>
+
+<h1>API</h1>
+
+<table border="0" width="95%">
+
+<tr>
+<td><code><big><strong>
+<a href="#api_start">reactor = luagravity.start (app, param)</a>
+</strong></big></code>
+<br/>
+Starts the main reactor representing the application.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_step">luagravity.step (app, evt, param)</a>
+</strong></big></code>
+<br/>
+Performs an execution step in the application with the given event.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_loop">luagravity.loop (nextEvent, app)</a>
+</strong></big></code>
+<br/>
+Runs the given application to completion.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_create">reactor = luagravity.create (body, t)</a>
+</strong></big></code>
+<br/>
+Creates a new reactor from a function body.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_spawn">reactor = luagravity.spawn (reactor, param)</a>
+</strong></big></code>
+<br/>
+Spawns the execution of the given reactor, passing a parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_call">ret = luagravity.call (reactor, param)</a>
+</strong></big></code>
+<br/>
+Executes the given reactor passing a parameter, awaiting its termination.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_kill">luagravity.kill (reactor)</a>
+</strong></big></code>
+<br/>
+Terminates the execution of the given reactor, cancelling it.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_link">luagravity.link (src, dst)</a>
+</strong></big></code>
+<br/>
+Creates a link between <code>src</code> and <code>dst</code>.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_unlink">luagravity.unlink (src, dst)</a>
+</strong></big></code>
+<br/>
+Breaks the link between <code>src</code> and <code>dst</code>.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_await">ret = luagravity.await (r1, r2, ...)</a>
+</strong></big></code>
+<br/>
+Makes the running reactor await for any condition passed as parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_deactivate">luagravity.deactivate (reactor)</a>
+</strong></big></code>
+<br/>
+Deactivates the awaiting reactor passed as parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_reactivate">luagravity.reactivate (reactor)</a>
+</strong></big></code>
+<br/>
+Reactivates the reactor passed as parameter.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_cancel">return luagravity.cancel</a>
+</strong></big></code>
+<br/>
+Terminates the running reactor, cancelling it.
+<br/>
+</tr>
+
+</table>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_start"/>
+<hr/></p>
+
+<p><big>
+    <code>reactor = luagravity.start (app, param)</code>
+</big></p>
+
+<p>Starts the main reactor representing the application.</p>
+
+<p>Should be used in conjunction with <a href="#api_step"><code>luagravity.step</code></a> in the <a href="#section_environment"><em>step 
+execution model</em></a>.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>app</code>:   [<code>reactor</code>|<code>function</code>] The main reactor to be executed.
+        Can also be a function, which is transformed into a reactor.</li>
+<li><code>param</code>: [<code>any</code>] An optional parameter passed to the application.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>app</code>: [<code>reactor</code>] A reference to the application.</li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_step"/>
+<hr/></p>
+
+<p><big>
+    <code>luagravity.step (app, evt, param)</code>
+</big></p>
+
+<p>Performs an execution step in the application with the given event.</p>
+
+<p>A step returns once the full propagation chain reacting to the issued event 
+terminates, what should take an infinitesimal time.</p>
+
+<p>Should be used in conjunction with <a href="#api_start"><code>luagravity.start</code></a> in the 
+<a href="#section_environment"><em>step execution model</em></a>.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>app</code>:   [<code>reactor</code>] The application to step.</li>
+<li><code>event</code>: [<code>string</code>]  The event to be triggered.</li>
+<li><code>param</code>: [<code>any</code>]     The value associated to the event.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><em>nothing</em></li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_loop"/>
+<hr/></p>
+
+<p><big>
+    <code>luagravity.loop (nextEvent, app)</code>
+</big></p>
+
+<p>Runs the given application to completion.</p>
+
+<p>It is equivalent to the following code:</p>
+
+<pre><code>function luagravity.loop (nextEvent, app, param)
+    app = luagravity.start(app, param)
+    while app.state ~= 'ready' do
+        local evt, param = nextEvent()
+        luagravity.step(app, evt, param)
+    end
+end
+</code></pre>
+
+<p>The function <code>nextEvent</code> blocks until a new event is returned from the 
+environment.</p>
+
+<p>The call to <code>loop</code> only returns after the application terminates.
+See also the  <a href="#section_environment"><em>loop execution model</em></a>.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>nextEvent</code>: [<code>function</code>] An environment dependent function that requests
+                        new events.</li>
+<li><code>app</code>:   [<code>reactor</code>|<code>function</code>] The main reactor to be executed.
+        Can also be a function, which is transformed into a reactor.</li>
+<li><code>param</code>: [<code>any</code>] An optional parameter passed to the application.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><em>nothing</em></li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_create"/>
+<hr/></p>
+
+<p><big>
+    <code>reactor = luagravity.create (body, t)</code>
+</big></p>
+
+<p>Creates a new reactor from a function body.</p>
+
+<p>The reactor body must follow the signature:</p>
+
+<pre><code>function ([obj], param) ... end
+</code></pre>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>body</code>: [<code>function</code>] The actual code to be executed by the reactor.</li>
+<li><code>t</code>:    [<code>table</code>]    An optional table supporting the following fields: 
+<ul>
+    <li><code>name</code>: [<code>string</code>] reactor's name (for debugging purposes only).
+    <li><code>obj</code>:  [<code>table</code>] if set, the reactor body is always called with 
+                <code>obj</code> as its first parameter.
+    <li><code>inst</code>: [<code>boolean</code>] sets whether the reactor is instantaneous, that 
+                is, if its body contains no <code>await</code> calls.
+                In this case LuaGravity performs an important optimization,
+                not creating a coroutine to run it.
+</ul></li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>ref</code>: [<code>reactor</code>] A reference to the created reactor.</li>
+</ul>
+
+<p><small>
+<em>The <code>inst</code> parameter allows an important optimization for reactors that do not 
+await on their bodies. However, for reactors that do await, this parameter must 
+be passed <code>false</code>.</em>
+</small></p>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_spawn"/>
+<hr/></p>
+
+<p><big>
+    <code>reactor = luagravity.spawn (reactor, param)</code>
+</big></p>
+
+<p>Spawns the execution of the given reactor, passing a parameter.</p>
+
+<p>The spawned reactor runs concurrently with the continuation of the running 
+reactor.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>reactor</code>: [<code>reactor</code>] Reactor to execute. May also be an anonymous function 
+                   that is automatically transformed into a reactor.</li>
+<li><code>param</code>: [<code>any</code>] Parameter to pass to the reactor.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>reactor</code>: [<code>reactor</code>] A reference to the spawned reactor.</li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_call"/>
+<hr/></p>
+
+<p><big>
+    <code>ret = luagravity.call (reactor, param)</code>
+</big></p>
+
+<p>Executes the given reactor passing a parameter, awaiting its termination.</p>
+
+<p>The callee reactor continues its execution only after the called reactor and 
+all reactions to it terminate.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>reactor</code>: [<code>reactor</code>] Reactor to execute.</li>
+<li><code>param</code>: [<code>any</code>] Parameter to pass to the reactor.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>ret</code>: [<code>any</code>] The return value of the called reactor.</li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_kill"/>
+<hr/></p>
+
+<p><big>
+    <code>luagravity.kill (reactor)</code>
+</big></p>
+
+<p>Terminates the execution of the given (awaiting) reactor, cancelling it.</p>
+
+<p>Reactors linked to (or awaiting) it are not triggered.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>reactor</code>: [<code>reactor</code>] Reactor to kill.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><em>nothing</em></li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_link"/>
+<hr/></p>
+
+<p><big>
+    <code>luagravity.link (src, dst)</code>
+</big></p>
+
+<p>Creates a link between <code>src</code> and <code>dst</code>.</p>
+
+<p>A link determines that the termination/post of the reactor/string event <code>src</code> 
+triggers the reactor <code>dst</code>.
+The returned value of <code>src</code> is passed to the body of <code>dst</code>.
+<a href="#api_cancel">Cancelled</a> or <a href="#api_kill">killed</a> reactors do not trigger 
+reactors linked to it.</p>
+
+<p>If a source reactor links to several destiny reactors, its termination makes 
+all of them to run concurrently.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>src</code>: [<code>reactor</code>|string`] Source reactor or string event.</li>
+<li><code>dst</code>: [<code>reactor</code>] Destiny reactor. May also be an anonymous function that is 
+               automatically transformed into an instantaneous reactor.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><em>nothing</em></li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_unlink"/>
+<hr/></p>
+
+<p><big>
+    <code>luagravity.unlink (src, dst)</code>
+</big></p>
+
+<p>Breaks the link between <code>src</code> and <code>dst</code>.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>src</code>: [<code>reactor</code>|<code>string</code>] Source reactor or string event.</li>
+<li><code>dst</code>: [<code>reactor</code>] Destiny reactor.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><em>nothing</em></li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_await"/>
+<hr/></p>
+
+<!-- TODO: 0, -1 -->
+
+<p><big>
+    <code>ret = luagravity.await (p1, p2, ...)</code>
+</big></p>
+
+<p>Makes the running reactor await for any condition passed as parameter.
+Further actions in the running reactor are not executed until it is awakened.</p>
+
+<p>Conditions might be the termination of reactors or <a href="#api_post">posting</a> of 
+string events.
+A number may also be passed as parameter to make the running reactor await this 
+number of milliseconds.</p>
+
+<p>The call returns the return value of the reactor responsible for awaking the 
+suspended reactor.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>...</code>: [<code>reactors</code>|<code>strings</code>|<code>numbers</code>] Conditions to await.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>ret</code>: [<code>any</code>] The return value of the satisfied condition.</li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_deactivate"/>
+<hr/></p>
+
+<p><big>
+    <code>luagravity.deactivate (reactor)</code>
+</big></p>
+
+<p>Deactivates the awaiting reactor passed as parameter.</p>
+
+<p>A deactivated reactor is not resumed when the event it is awaiting is 
+triggered.
+If the reactor is awaiting on Timers associated to deactivated reactors are 
+paused.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>reactor</code>: [<code>reactor</code>] The reactor to deactivate.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><em>nothing</em></li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_reactivate"/>
+<hr/></p>
+
+<p><big>
+    <code>luagravity.reactivate (reactor)</code>
+</big></p>
+
+<p>Reactivates the deactivated reactor passed as parameter.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>reactor</code>: [<code>reactor</code>] The reactor to reactivate.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><em>nothing</em></li>
+</ul>
+
+<!------------------------------------------------------------------------>
+
+<p><a name="api_cancel"/>
+<hr/></p>
+
+<p><big>
+    <code>return luagravity.cancel</code>
+</big></p>
+
+<p>Terminates the running reactor, cancelling it.</p>
+
+<p>Reactors linked to (or awaiting) it are not triggered.</p>

@@ -1,0 +1,395 @@
+<html>
+<head>
+    <title>The LuaGravity Meta Language</title>
+	<link rel="stylesheet" href="doc.css" type="text/css"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-17746978-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+</head>
+<body>
+<div id="container">
+<div id="product">
+	<p/>
+	<div id="product_logo">
+        <img alt="Lua logo" src="luagravity.png"/>
+    </div>
+    <div id="product_name"><big><strong>The LuaGravity Meta Language</strong></big></div>
+    <div id="product_description">  </div>
+</div> <!-- id="product" -->
+<div id="main">
+<div id="navigation">
+
+<ul>
+    <li><a href="#section_intro"> Introduction </a></li>
+    <li><a href="#section_expressions"> Reactive Expressions </a>
+    <ul>
+        <li><a href="#section_lifting"> <small>Lifting</small> </a></li>
+        <li><a href="#section_operators"> <small>Operators</small> </a></li>
+        <li><a href="#section_conditionals"> <small>Conditionals</small> 
+        </a></li>
+        <li><a href="#section_calculus"> <small>Integral & Derivative</small> 
+        </a></li>
+        <li><a href="#section_cycles"> <small>Causality Cycles</small> 
+    </a></li>
+    </ul></li>
+    <li><a href="#section_oo"> Object Orientation </a></li>
+    <li><a href="#section_api"> API </a>
+    <ul>
+        <li><a href="#api_new"> <tt>meta.new</tt> </a></li>
+        <li><a href="#api_apply"> <tt>meta.apply</tt> </a></li>
+        <li><a href="#api_dofile"> <tt>meta.dofile</tt> </a></li>
+    </ul>
+    </li>
+</ul>
+</div> <!-- id="navigation" -->
+<div id="content">
+<p/>
+
+<p><a name="section_intro"/></p>
+
+<h1>Introduction</h1>
+
+<p>The <code>meta</code> module extends Lua with the semantics of <a href="index.html">LuaGravity</a>.
+With a special syntax, the programmer creates reactors instead of functions and 
+reactive variables instead of conventional Lua variables.</p>
+
+<p>The call to <code>meta.new</code> returns a new special table <code>t</code> in which the semantic 
+extensions of LuaGravity are applied:</p>
+
+<pre><code>local t = meta.new()
+function t.funcA () ... end
+function t._reactorA () ... end
+function t.__reactorB () ... gvt.await(...) end
+t.funcA()
+t._reactorA()   -- equivalent to gvt.call(t._reactorA)
+t.__reactorB()  -- equivalent to gvt.call(t.__reactorB)
+</code></pre>
+
+<p>Any function whose name is prefixed by underscores becomes a reactor.
+For names starting with one underscore, instantaneous reactors are created;
+for names starting with two underscores, reactors that can await are created.
+Also, to call a reactor, the conventional function call syntax can be used.</p>
+
+<p>It is also possible to change the global environment of a function to reflect 
+the semantic extensions:</p>
+
+<pre><code>APP = meta.apply(function ()
+    function funcA () ... end
+    function _reactorA () ... end
+    function __reactorB () ... await(...) end
+    funcA()
+    _reactorA()   -- equivalent to gvt.call(_reactorA)
+    __reactorB()  -- equivalent to gvt.call(__reactorB)
+end)
+gvt.loop(APP)
+</code></pre>
+
+<p>The function environment is also extended with all LuaGravity primitives, such 
+as <code>await</code>, <code>link</code>, <code>spawn</code>, etc.</p>
+
+<p><a name="section_expressions"/></p>
+
+<h1>Reactive Expressions</h1>
+
+<p>Reactive expressions are another must of reactive languages.
+The value of a reactive expression is updated whenever one of its operands 
+changes, always reflecting the operation first defined.</p>
+
+<p>The best way to understand reactive expressions is through a simple example:</p>
+
+<pre><code>meta.apply(function()
+    _b = 1
+    _c = 2
+    _a = _b + _c
+    print(_a())   -- prints 3
+    _b = 5
+    print(_a())   -- prints 7
+end)
+</code></pre>
+
+<p>The reactive variable <code>_a</code> depends on <code>_b</code> and <code>_c</code> so that anytime they 
+change, the value of <code>_a</code> is automatically updated to reflect the sum.</p>
+
+<p>As reactive variables are represented as objects, to get their actual values 
+the call syntax is used, as in <code>_a()</code>.</p>
+
+<p>Reactive expressions are implemented on top of the available reactivity 
+primitives of LuaGravity.</p>
+
+<p><a name="section_lifting"/></p>
+
+<h2>Lifting</h2>
+
+<p>When applying functions to reactive expressions, it is expected that the result 
+become also reactive.
+However, functions and operators in conventional languages like Lua are not 
+prepared to accept reactive parameters.
+It is necessary, then, to modify each of these operations to work reactively, a 
+process known as <em>lifting</em>.</p>
+
+<p>LuaGravity provides the <code>L</code> operator to lift functions.
+In the following example, the function <code>assert</code> is lifted and is recalculated 
+whenever its parameters change:</p>
+
+<pre><code>_b = 1
+L(assert)(_b &lt; 10, 'b must be lesser than 10')
+gvt.await(...)
+_b = 10  -- yields 'b must be lesser than 10'
+</code></pre>
+
+<p><a name="section_operators"/></p>
+
+<h2>Operators</h2>
+
+<p>LuaGravity automatically lifts all operators that Lua allows to overload:</p>
+
+<pre><code>+  -  *  /  ..  %  ^
+</code></pre>
+
+<p>The other operators are available as pre-defined functions in a <code>meta.apply</code> 
+environment: </p>
+
+<table>
+<tr> <th>Lua</th>   <th>LuaGravity</th> <th>Example</th>       </tr>
+<tr> <td> # </td>   <td> LEN </td>      <td> LEN(t)      </td> </tr>
+<tr> <td> == </td>  <td> EQ  </td>      <td> EQ(_a, 1)   </td> </tr>
+<tr> <td> ~= </td>  <td> NEQ </td>      <td> NEQ(_a, 1)  </td> </tr>
+<tr> <td> < </td>   <td> LT  </td>      <td> LT(_a, 10)  </td> </tr>
+<tr> <td> <= </td>  <td> LE  </td>      <td> LE(_a, _b)  </td> </tr>
+<tr> <td> > </td>   <td> GT  </td>      <td> GT(a, _a)   </td> </tr>
+<tr> <td> >= </td>  <td> GE  </td>      <td> GE(10, _b)  </td> </tr>
+<tr> <td> not </td> <td> NOT </td>      <td> NOT(_a)     </td> </tr>
+<tr> <td> or </td>  <td> OR  </td>      <td> OR(_a, _b)  </td> </tr>
+<tr> <td> and </td> <td> AND </td>      <td> AND(_a, _b) </td> </tr>
+</table>
+
+<p><small><em>(Note in the previous example that <code>_b&lt;10</code> should actually be 
+<code>LT(_b,10)</code>)</em></small></p>
+
+<p><a name="section_conditionals"/></p>
+
+<h2>Conditionals</h2>
+
+<p>Sometimes it is useful to take actions when a condition is satisfied.
+LuaGravity provides the <code>cond</code> and <code>notcond</code> operator that can be applied to 
+reactive expressions and used as conditions in <code>link</code> and <code>await</code> calls:</p>
+
+<pre><code>link(notcond(_b), reactorA)  -- reactorA is executed when _b is false
+await( cond(GT(_a,10)) )     -- the running reactor awaits _a be greater than 10
+</code></pre>
+
+<p><a name="section_calculus"/></p>
+
+<h2>Integral &amp; Derivative</h2>
+
+<p>LuaGravity provides primitives for the integration and derivation (in the sense 
+of calculus) of expressions over the time:</p>
+
+<pre><code>_s = S(10)
+_d = D(s)
+await(10)
+assert(_s() &gt;= 100 and _s() &lt;= 101)
+assert(_d() == 10)
+</code></pre>
+
+<p>The following example defines the position <code>_p</code> in terms of the speed <code>_v</code>:</p>
+
+<pre><code>_p = _p0 + S(_v)
+</code></pre>
+
+<p><a name="section_cycles"/></p>
+
+<h2>Causality Cycles</h2>
+
+<p>It is not possible to have reactive variables depending on themselves.</p>
+
+<p>Suppose the position of an object depends on a speed that, in turn, depends on 
+the position:</p>
+
+<pre><code>_v   = _pos + 1
+_pos = S(_v)
+</code></pre>
+
+<p>This creates a dependency cycle that, when started, would run forever, freezing 
+the application.</p>
+
+<p>To break such cycles, LuaGravity provides a <code>delay</code> operator that can be 
+applied to expressions:</p>
+
+<pre><code>_v   = delay(_pos) + 1
+_pos = S(_v)
+</code></pre>
+
+<p>Another situation in which cycles can appear is when trying to build a reactive 
+variable with a loop.
+Suppose you have an array of reactive variables that you want to concatenate to 
+create another reactive variable that changes whenever one of them changes:</p>
+
+<pre><code>t = { _a, _b, _c, ... }
+_all = ''
+for i, _v in ipairs(t) do
+    _all = _all .. _v
+end
+</code></pre>
+
+<p>This code makes the variable <code>_all</code> depend on itself, when the intention is to 
+depend on its current dependencies.
+The correct form is to use the field <code>_all.src</code>:</p>
+
+<pre><code>t = { _a, _b, _c, ... }
+_all = ''
+for i, _v in ipairs(t) do
+    _all = _all.src .. _v
+end
+</code></pre>
+
+<p><a name="section_oo"/></p>
+
+<h1>Object Orientation</h1>
+
+<p>Although the colon syntax for calling methods in object orientation works fine 
+with reactors, primitives like <code>link</code> and <code>await</code> are not aware of OO.
+To work with objects, the <code>meta.new</code> constructor must receive <code>true</code> as its 
+first parameter:</p>
+
+<pre><code>local obj = meta.new(true)
+function obj:_reactorA (self,...) ... end
+function obj:_reactorB (self,...) ... end
+link(obj._reactorA, obj._reactorB)
+obj:_reactorB()
+obj._reactorB()
+</code></pre>
+
+<p>This way, whenever <code>_reactorB</code> is called it always gets <code>obj</code> as its first 
+parameter, being it from a link, colon syntax, or even normal call syntax.</p>
+<p><a name="section_api"/></p>
+
+<h1>API</h1>
+
+<table border="0" width="95%">
+
+<tr>
+<td><code><big><strong>
+<a href="#api_new">newt = meta.new (t, env, isObj)</a>
+</strong></big></code>
+<br/>
+Creates a new table that supports the LuaGravity extensions.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_apply">f, newt = meta.apply (f, env)</a>
+</strong></big></code>
+<br/>
+Changes the environment of the given function to support the LuaGravity 
+extensions.
+</tr>
+
+<tr>
+<td><code><big><strong>
+<a href="#api_dofile">ret = meta.dofile (filename, env)</a>
+</strong></big></code>
+<br/>
+Executes `filename` with support to the LuaGravity extensions.
+</tr>
+
+</table>
+
+<hr/>
+
+<p><a name="api_new"/>
+<big>
+    <code>newt = meta.new (t, env, isObj)</code>
+</big></p>
+
+<p>Creates a new table that supports the LuaGravity extensions.
+The returned table looks at <code>env</code> for non-existent fields in the returned 
+table.</p>
+
+<p>If <code>isObj</code> is true, every reactor defined inside the returned table receives 
+itself as the first parameter.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>t</code>:   <code>[table]</code> If given, its values are copied to <code>newt</code>.</li>
+<li><code>env</code>: <code>[table]</code> If given, the returned table looks at it for non-existent
+               fields. Defaults to the current environment.</li>
+<li><code>isObj</code>: <code>[boolean]</code> Whether the returned table should behave as an object or 
+                   not. Defaults to <code>false</code>.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>newt</code>: [table] A reference to the created table.</li>
+</ul>
+
+<hr/>
+
+<p><a name="api_apply"/>
+<big>
+    <code>f, newt = meta.apply (f, env)</code>
+</big></p>
+
+<p>Changes the environment of the given function to support the LuaGravity 
+extensions.</p>
+
+<p>The environment is also extended with the following primitives:</p>
+
+<pre><code>spawn  call  kill  link  unlink  await  cancel  post  deactivate  reactivate
+delay  cond  L  S  D
+LEN  EQ  LT  LE  GT  GE  NOT  OR  AND
+</code></pre>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>f</code>: [function] The function to apply the new environment.
+              If no function is given, it is assumed the function that 
+              called <code>meta.apply</code>.</li>
+<li><code>env</code>: [table]  Behave as in <a href="#api_new">meta.new</a>.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>f</code>:    [function] The same function passed as parameter.</li>
+<li><code>newt</code>: [table]    The new environment for <code>f</code>.</li>
+</ul>
+
+<hr/>
+
+<p><a name="api_dofile"/>
+<big>
+    <code>ret = meta.dofile (filename, env)</code>
+</big></p>
+
+<p>Executes <code>filename</code> with support to the LuaGravity extensions.
+<code>filename</code> runs in the new environment extended with <code>env</code>.</p>
+
+<p>Parameters:</p>
+
+<ul>
+<li><code>filename</code>: [string] The filename to execute.</li>
+<li><code>env</code>:      [table]  Behave as in <a href="#api_new">meta.new</a>.</li>
+</ul>
+
+<p>Returns:</p>
+
+<ul>
+<li><code>ret</code>: [any] The value returned by executing the file, or its environment.</li>
+</ul>
